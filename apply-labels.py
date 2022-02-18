@@ -28,44 +28,55 @@ def main():
     description = "Mark for deprecation. See OEP-21"
 
     gh_headers = get_github_headers()
-    repos = ["public_engineering"] #"paragon"
+    repos = ["paragon"] #"paragon"
     for repo in repos:
         create_or_update_label(gh_headers, repo, name, color, description)
 
 def create_or_update_label(gh_headers, repo, name, color, description):
-    LOG.info("******* CHECKING REPO: {0} ************")
+    LOG.info("\n\n******* CHECKING REPO: {0} ************\n".format(repo))
+    # URL for the Labels api (can read all labels and add a new one)
     labels_url = "https://api.github.com/repos/openedx/{0}/labels".format(repo)
+    # URL for one specific label - can check if one is present, or update it
     single_label_url = "https://api.github.com/repos/openedx/{0}/labels/{1}".format(repo, name)
     #labels = requests.get(labels_url, headers=gh_headers).json() # to get all labels on a repo
 
-    # If the label is present, we just need to update the color & description
-    if r == requests.get(single_label_url).status_code == 200:
-        LOG.info("got 200 on the label check")
+    if requests.get(single_label_url).status_code == 200:
+        LOG.info("  Label {0} present on repo {1}, updating label".format(name, repo))
         r = requests.patch(
             single_label_url,
             headers=gh_headers,
             json={"color": color, "description": description}
         )
-        assert r.status_code == 200
+        assert r.status_code == 200, "Updating label failed"
         validate(r.json(), color, description)
 
     else:
-        LOG.info("Didn't find the label")
+        # Add the label
+        LOG.info("  Didn't find the label")
         r = requests.post(
             labels_url,
             headers=gh_headers,
             json={"name": name, "color": color, "description": description}
         )
-        assert r.status_code == 201
+        assert r.status_code == 201, "Failed to add the label"
         validate(r.json(), color, description, name)
 
+    LOG.info("Success")
+
+
 def validate(rjson, color, description, name=None):
+    fail = False
     if name is not None and rjson['name'] != name:
-        LOG.info("Name was not created properly")
+        LOG.info("    Name was not created properly")
+        fail = True
     if rjson['color'] != color:
-        LOG.info("Color did not update properly")
+        LOG.info("    Color not created or update properly")
+        fail = True
     if rjson['description'] != description:
-        LOG.info("Description did not update properly")
+        LOG.info("    Description not created or updated properly")
+        fail = True
+
+    assert not fail, "Update failed, got: {}".format(rjson)
 
 
 def get_github_headers() -> dict:
@@ -80,6 +91,7 @@ def get_github_headers() -> dict:
     # set up HTTP headers because PyGithub isn't able to determine team permissions on a repo in bulk.
     gh_headers = {"AUTHORIZATION": f"token {gh_token}"}
     return gh_headers
+
 
 if __name__ == "__main__":
     main()
