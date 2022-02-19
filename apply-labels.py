@@ -8,20 +8,16 @@ Requires:
 
 Description:
     Applies purple label DEPR with short description to all public repos in
-    openedx org.
+    the given org.
 
 Future Work:
-    Abstract to take any org and any label name/color/description
     Remove asserts and do inscript retry &/or dump the failed repos
 """
 
-# pylint: disable=unspecified-encoding
-import json
 import logging
 import os
 import sys
 import argparse
-from datetime import datetime
 
 import github as gh_api
 import requests
@@ -30,31 +26,28 @@ import requests
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
-def main():
+def main(org, name, color, description, exclude_private=False):
     """
     Script entrypoint
     """
-    # Configure information for the label you want to add/update
-    name = "DEPR"
-    color = "6140cf"
-    description = "Mark for deprecation. See OEP-21"
-
     gh_headers = get_github_headers()
 
     count = 1
-    for repo in get_repos(gh_headers):
+    for repo in get_repos(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {repo} ({count}) ************\n")
-        create_or_update_label(gh_headers, repo, name, color, description)
+        create_or_update_label(gh_headers, org, repo, name, color, description)
         count = count + 1
     LOG.info("Successfully standardised label {name} across {count} repos")
 
-def get_repos(gh_headers):
+def get_repos(gh_headers, org, exclude_private):
     """
     Generator
     Yields each repo'- name in the org
     """
-    org_url = "https://api.github.com/orgs/openedx/repos"
-    params = {"type": "public", "page": 1}
+    org_url = "https://api.github.com/orgs/{0}/repos".format(org)
+    params = {"page": 1}
+    if exclude_private:
+        params["type"] = "public"
     response = requests.get(org_url, headers=gh_headers, params=params).json()
     while len(response) > 0:
         for repo_data in response:
@@ -64,16 +57,16 @@ def get_repos(gh_headers):
         response = requests.get(org_url, headers=gh_headers, params=params).json()
 
 
-def create_or_update_label(gh_headers, repo, name, color, description):
+def create_or_update_label(gh_headers, org, repo, name, color, description):
     """
     Looks for the label; if it's present, updates it with the specified color &
     description.
     If it's not present, creates it with specified color & description.
     """
     # URL for the Labels api (can read all labels and add a new one)
-    labels_url = "https://api.github.com/repos/openedx/{0}/labels".format(repo)
+    labels_url = "https://api.github.com/repos/{0}/{1}/labels".format(org, repo)
     # URL for one specific label - can check if one is present, or update it
-    single_label_url = "https://api.github.com/repos/openedx/{0}/labels/{1}".format(repo, name)
+    single_label_url = "https://api.github.com/repos/{0}/{1}/labels/{2}".format(org, repo, name)
 
     action = None
     # If label is present, 200; if not, 404
@@ -130,9 +123,45 @@ def get_github_headers() -> dict:
     return gh_headers
 
 
-## Additional useful info
-## labels = requests.get(labels_url, headers=gh_headers).json() # to get all labels on a repo
-
-
 if __name__ == "__main__":
-    main()
+    try:
+        os.environ["GITHUB_TOKEN"]
+    except KeyError:
+        sys.exit("*** ERROR ***\nGITHUB_TOKEN must be defined in this environment")
+
+    parser = argparse.ArgumentParser(
+        description="Applies a specified label, with short description and\
+            color, to all repos in the specified organization - either adding\
+            the label if it's not already there, or updating it to match the\
+            specification if it is."
+    )
+
+    parser.add_argument(
+        "org",
+        help="Name of the organization"
+    )
+
+    parser.add_argument(
+        "name",
+        help="What's the case-sensitive name of the label to add/update?"
+    )
+
+    parser.add_argument(
+        "color",
+        help="What's 6-character hex code (no #) corresponding to label color?"
+    )
+
+    parser.add_argument(
+        "description",
+        help="Description of label (< 100 characters)"
+    )
+
+    parser.add_argument(
+        "-P", "--exclude-private",
+        help="Exclude private repos from this org",
+        action="store_true"
+    )
+
+    args = parser.parse_args()
+
+    main(args.org, args.name, args.color, args.description, args.exclude_private)
