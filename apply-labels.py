@@ -28,12 +28,25 @@ def main():
     description = "Mark for deprecation. See OEP-21"
 
     gh_headers = get_github_headers()
-    repos = ["paragon"] #"paragon"
-    for repo in repos:
+
+    for repo in get_repos(gh_headers):
+        LOG.info("\n\n******* CHECKING REPO: {0} ************\n".format(repo))
         create_or_update_label(gh_headers, repo, name, color, description)
 
+def get_repos(gh_headers):
+    """ yields each repo name in the org """
+    org_url = "https://api.github.com/orgs/openedx/repos"
+    params = {"type": "public", "per_page": 100, "page": 1}
+    response = requests.get(org_url, headers=gh_headers, params=params).json()
+    while len(response) > 0:
+        for repo_data in response:
+            assert not repo_data['private']
+            yield repo_data['name']
+        params["page"] = params["page"] + 1
+        response = requests.get(org_url, headers=gh_headers, params=params).json()
+
+
 def create_or_update_label(gh_headers, repo, name, color, description):
-    LOG.info("\n\n******* CHECKING REPO: {0} ************\n".format(repo))
     # URL for the Labels api (can read all labels and add a new one)
     labels_url = "https://api.github.com/repos/openedx/{0}/labels".format(repo)
     # URL for one specific label - can check if one is present, or update it
@@ -41,7 +54,7 @@ def create_or_update_label(gh_headers, repo, name, color, description):
     #labels = requests.get(labels_url, headers=gh_headers).json() # to get all labels on a repo
 
     if requests.get(single_label_url).status_code == 200:
-        LOG.info("  Label {0} present on repo {1}, updating label".format(name, repo))
+        LOG.info("Label {0} present on repo {1}, updating label".format(name, repo))
         r = requests.patch(
             single_label_url,
             headers=gh_headers,
@@ -52,7 +65,7 @@ def create_or_update_label(gh_headers, repo, name, color, description):
 
     else:
         # Add the label
-        LOG.info("  Didn't find the label")
+        LOG.info("Didn't find the label")
         r = requests.post(
             labels_url,
             headers=gh_headers,
@@ -67,13 +80,10 @@ def create_or_update_label(gh_headers, repo, name, color, description):
 def validate(rjson, color, description, name=None):
     fail = False
     if name is not None and rjson['name'] != name:
-        LOG.info("    Name was not created properly")
         fail = True
     if rjson['color'] != color:
-        LOG.info("    Color not created or update properly")
         fail = True
     if rjson['description'] != description:
-        LOG.info("    Description not created or updated properly")
         fail = True
 
     assert not fail, "Update failed, got: {}".format(rjson)
@@ -88,7 +98,6 @@ def get_github_headers() -> dict:
     gh_client = gh_api.Github(gh_token)
     LOG.info(" Authenticated.")
 
-    # set up HTTP headers because PyGithub isn't able to determine team permissions on a repo in bulk.
     gh_headers = {"AUTHORIZATION": f"token {gh_token}"}
     return gh_headers
 
