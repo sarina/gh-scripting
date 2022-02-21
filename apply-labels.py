@@ -18,9 +18,9 @@ import logging
 import os
 import sys
 import argparse
-
-import github as gh_api
 import requests
+
+from ghelpers import get_github_headers
 
 # Switch to DEBUG for additional debugging info
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -108,19 +108,6 @@ def validate(rjson, color, description, name=None):
         fail = True
 
     assert not fail, "Creation or update failed, got: {}".format(rjson)
-
-
-def get_github_headers() -> dict:
-    """
-    Load GH personal access token from file.
-    """
-    gh_token = os.environ["GITHUB_TOKEN"]
-    LOG.info(" Authenticating.")
-    gh_client = gh_api.Github(gh_token)
-    LOG.info(" Authenticated.")
-
-    gh_headers = {"AUTHORIZATION": f"token {gh_token}"}
-    return gh_headers
 
 
 if __name__ == "__main__":
