@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-githubb helpers
+github helpers
 """
 
 import logging

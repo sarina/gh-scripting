@@ -15,6 +15,7 @@ Description:
 
 import logging
 import os
+import subprocess
 import sys
 import argparse
 import requests
@@ -26,16 +27,26 @@ from ghelpers import get_github_headers
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
-def main(org, exclude_private=False, interactive=False):
+def main(org, root_dir, exclude_private=False, interactive=False):
     """
-    Script entrypoint
+    Goes through all repos in an org, clones them, makes a new branch, copies
+    specific files, commits them, creates a pull request, and merges the pull
+    request.
+
+    * org (str): GitHub organization
+    * root_dir (str): path to directory to clone repos (on Mac, may look like 
+      `/Users/<uname>/path/to/dir`
+    * exclude_private (bool): if True, script skips private repos (default
+      False)
+    * interactive (bool): if True, pauses before committing files upstream and
+      awaits user confirmation
     """
     gh_headers = get_github_headers()
     branch_name = "add-depr-issue"
     count = 1
     for rname, ssh_url, dbranch, has_issues in get_repos(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {rname} ({count}) ************\n")
-        clone_repo(ssh_url, dbranch)
+        clone_repo(repo, root_dir, ssh_url, dbranch)
         new_branch(branch_name)
         add_files(has_issues, interactive)
         commit_and_pr(gh_headers, org, rname)
@@ -67,14 +78,35 @@ def get_repos(gh_headers, org, exclude_private):
         params["page"] = params["page"] + 1
         response = requests.get(org_url, headers=gh_headers, params=params).json()
 
-def clone_repo(ssh_url, dbranch):
-    # if not cloned:
-    # clone repo
+def clone_repo(repo, root_dir, ssh_url, default_branch):
+    """
+    If not already cloned into root_dir, clones repo at that location. If
+    cloned, switches to the repo's default_branch and pulls down the latest
+    changes.
+    """
+    # Dev note: process.communicate returns a tuple of (output, error)
+    if not root_dir.endswith('/'):
+        root_dir = root_dir + '/'
+    repo_path = root_dir + repo
+    path_exists = os.path.exists(repo_path)
+    LOG.info("Path is {0}, exists = {1}".format(repo_path, path_exists))
+    if not path_exists:
+        LOG.info("cloning")
+        process = subprocess.Popen(["/opt/homebrew/bin/git", "clone", ssh_url], cwd=root_dir)
+        _ = process.communicate()
 
-    # else
-    # git checkout master
-    # git pull
-    pass
+    else:
+        p1 = subprocess.Popen(
+            ["/opt/homebrew/bin/git", "checkout", default_branch],
+            cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        _ = p1.communicate()
+
+        p2 = subprocess.Popen(
+            ["/opt/homebrew/bin/git", "pull"],
+            cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        _ = p2.communicate()
 
 
 def new_branch(branch_name):
@@ -91,4 +123,5 @@ def commit_and_pr(gh_headers, org, rname):
 
 
 if __name__ == "__main__":
-    main("openedx", True, False)
+    clone_repo("frontend-enterprise", "/Users/sarinacanelake/openedx/", "git@github.com:openedx/frontend-enterprise.git", "master")
+#    main("openedx", "/Users/sarinacanelake/openedx", True, False)
