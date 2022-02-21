@@ -42,16 +42,18 @@ def main(org, root_dir, exclude_private=False, interactive=False):
       awaits user confirmation
     """
     gh_headers = get_github_headers()
-    branch_name = "add-depr-issue"
+    branch_name = "sarina/test"
     count = 1
     for rname, ssh_url, dbranch, has_issues in get_repos(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {rname} ({count}) ************\n")
-        clone_repo(repo, root_dir, ssh_url, dbranch)
-        new_branch(branch_name)
+        repo_path = get_repo_path(repo, root_dir)
+        clone_repo(root_dir, repo_path, ssh_url, dbranch)
+        new_branch(repo_path, branch_name)
         add_files(has_issues, interactive)
         commit_and_pr(gh_headers, org, rname)
         count = count + 1
     LOG.info("Successfully copied workflow to {count} repos")
+
 
 def get_repos(gh_headers, org, exclude_private):
     """
@@ -78,20 +80,17 @@ def get_repos(gh_headers, org, exclude_private):
         params["page"] = params["page"] + 1
         response = requests.get(org_url, headers=gh_headers, params=params).json()
 
-def clone_repo(repo, root_dir, ssh_url, default_branch):
+
+def clone_repo(root_dir, repo_path, ssh_url, default_branch):
     """
     If not already cloned into root_dir, clones repo at that location. If
     cloned, switches to the repo's default_branch and pulls down the latest
     changes.
     """
     # Dev note: process.communicate returns a tuple of (output, error)
-    if not root_dir.endswith('/'):
-        root_dir = root_dir + '/'
-    repo_path = root_dir + repo
     path_exists = os.path.exists(repo_path)
-    LOG.info("Path is {0}, exists = {1}".format(repo_path, path_exists))
+
     if not path_exists:
-        LOG.info("cloning")
         process = subprocess.Popen(["/opt/homebrew/bin/git", "clone", ssh_url], cwd=root_dir)
         _ = process.communicate()
 
@@ -109,10 +108,21 @@ def clone_repo(repo, root_dir, ssh_url, default_branch):
         _ = p2.communicate()
 
 
-def new_branch(branch_name):
-    # git checkout -b add-depr-issue; git push -u origin add-depr-issue
-    pass
+def new_branch(repo_path, branch_name):
+    """
+    Creates and pushes to remote a new branch called branch_name
+    """
+    p1 = subprocess.Popen(
+        ["/opt/homebrew/bin/git", "checkout", "-b", branch_name],
+        cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    _ = p1.communicate()
 
+    p2 = subprocess.Popen(
+        ["/opt/homebrew/bin/git", "push", "-u", "origin", branch_name],
+        cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    _ = p2.communicate()
 
 def add_files(has_issues, interactive):
     pass
@@ -121,7 +131,14 @@ def add_files(has_issues, interactive):
 def commit_and_pr(gh_headers, org, rname):
     pass
 
+def get_repo_path(repo, root_dir):
+    if not root_dir.endswith('/'):
+        root_dir = root_dir + '/'
+    return root_dir + repo
+
 
 if __name__ == "__main__":
-    clone_repo("frontend-enterprise", "/Users/sarinacanelake/openedx/", "git@github.com:openedx/frontend-enterprise.git", "master")
+    #clone_repo("frontend-enterprise", "/Users/sarinacanelake/openedx/",
+    #"git@github.com:openedx/frontend-enterprise.git", "master")
+    new_branch(get_repo_path("frontend-enterprise","/Users/sarinacanelake/openedx/"), "sarina/test")
 #    main("openedx", "/Users/sarinacanelake/openedx", True, False)
