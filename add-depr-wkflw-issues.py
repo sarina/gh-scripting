@@ -43,15 +43,26 @@ def main(org, root_dir, exclude_private=False, interactive=False):
     """
     gh_headers = get_github_headers()
     branch_name = "sarina/test"
+    workflow_template_name = "add-depr-ticket-to-depr-board.yml"
+    issue_template_name = "depr-ticket.yml"
+
     count = 1
     for rname, ssh_url, dbranch, has_issues in get_repos(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {rname} ({count}) ************\n")
         repo_path = get_repo_path(repo, root_dir)
         clone_repo(root_dir, repo_path, ssh_url, dbranch)
         new_branch(repo_path, branch_name)
-        add_files(has_issues, interactive)
+        add_files(
+            root_dir,
+            repo_path,
+            workflow_template_name,
+            has_issues,
+            issue_template_name,
+            interactive
+        )
         commit_and_pr(gh_headers, org, rname)
         count = count + 1
+
     LOG.info("Successfully copied workflow to {count} repos")
 
 
@@ -114,19 +125,56 @@ def new_branch(repo_path, branch_name):
     """
     p1 = subprocess.Popen(
         ["/opt/homebrew/bin/git", "checkout", "-b", branch_name],
-        cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=repo_path#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     _ = p1.communicate()
 
     p2 = subprocess.Popen(
         ["/opt/homebrew/bin/git", "push", "-u", "origin", branch_name],
-        cwd=repo_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=repo_path#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     _ = p2.communicate()
 
-def add_files(has_issues, interactive):
-    pass
+def add_files(root_dir, repo_path, wtemplate_name, has_issues, itemplate_name):
+    """
+    For the given repo (represented by the repo_path) which resides in the
+    root_dir, copies a workflow template from the root_dir/.github/workflow-templates
+    directory into repo_path/.github/workflow-templates.
 
+    If the repo does not have issues enabled, copies
+    root_dir/override_config.yml and root_dir/.github/ISSUE_TEMPLATE/itemplate_name
+    into repo_path/.github/ISSUE_TEMPLATE/config.yml and itemplate_name, respectively
+    """
+    mkdir(repo_path, ".github")
+    mkdir(repo_path, ".github/workflows")
+
+    dot_github_path = get_repo_path('.github', root_dir)
+    workflow_template_path = dot_github_path + '/workflow-templates/' + wtemplate_name
+    workflow_destination_path = repo_path + '/.github/workflows'
+    cp(repo_path, workflow_template_path, workflow_destination_path)
+
+    if not has_issues:
+        # if issues aren't enabled on this repo yet, we copy over the DEPR
+        # template as well as a config file to turn on the DEPR template
+        mkdir(repo_path, ".github/ISSUE_TEMPLATE")
+        issue_template_path = dot_github_path + "/.github/ISSUE_TEMPLATE/" + itemplate_name
+        cp(repo_path, issue_template_path, ".github/ISSUE_TEMPLATE")
+        cp(repo_path, "../override_config.yml", ".github/ISSUE_TEMPLATE/config.yml")
+
+
+def mkdir(working_dir, dir_name):
+    p1 = subprocess.Popen(
+        ["/bin/mkdir", dir_name],
+        cwd=working_dir#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    _ = p1.communicate()
+
+def cp(working_dir, filepath, dest_path):
+    p1 = subprocess.Popen(
+        ["cp", filepath, dest_path],
+        cwd=working_dir#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    _ = p1.communicate()
 
 def commit_and_pr(gh_headers, org, rname):
     pass
@@ -140,5 +188,9 @@ def get_repo_path(repo, root_dir):
 if __name__ == "__main__":
     #clone_repo("frontend-enterprise", "/Users/sarinacanelake/openedx/",
     #"git@github.com:openedx/frontend-enterprise.git", "master")
-    new_branch(get_repo_path("frontend-enterprise","/Users/sarinacanelake/openedx/"), "sarina/test")
+    root_dir = "/Users/sarinacanelake/openedx/"
+    repo_path = get_repo_path("frontend-enterprise", root_dir)
+    #new_branch(repo_path, "sarina/test")
+    add_files(root_dir, repo_path, "add-depr-ticket-to-depr-board.yml", False, "depr-ticket.yml")
+
 #    main("openedx", "/Users/sarinacanelake/openedx", True, False)
