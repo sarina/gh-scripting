@@ -96,7 +96,8 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         try:
             pr_url = make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details)
             prs.append(pr_url)
-        except PrCreationError:
+        except PrCreationError as pr_err:
+            LOG.info(pr_err.__str__())
             pr_failed.append(rname)
         count = count + 1
 
@@ -214,9 +215,7 @@ def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     params.update(pr_details)
     response = requests.post(post_url, headers=gh_headers, json=params)
     if response.status_code != 201:
-        LOG.info("PR failed with {}".format(response.status_code))
-        LOG.info("{}".format(response.json()))
-        raise PrCreationError
+        raise PrCreationError(response.status_code, response.json())
 
     pr_url = response.json()["html_url"]
     LOG.info("PR success: {}".format(pr_url))
@@ -257,7 +256,14 @@ class RepoError(Exception):
 
 
 class PrCreationError(Exception):
-    pass
+    def __init__(self, status_code, rjson):
+        self.status_code = status_code
+        self.rjson = rjson
+
+    def __str__(self):
+        status_string = "Status code: {}".format(self.status_code)
+        json_string = "{}".format(self.rjson)
+        return status_string + "\n" + json_string
 
 def interactive_commit(repo_path):
     # don't call the `git` method because we always want this to go to stdout
