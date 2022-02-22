@@ -54,13 +54,20 @@ def main(org, root_dir, exclude_private=False, interactive=False):
     count = 1
     prs = []
     pr_failed = []
+    repos_skipped = []
+
     for repo_data in get_repos(gh_headers, org, exclude_private):
         (rname, ssh_url, dbranch, has_issues) = repo_data
 
         LOG.info("\n\n******* CHECKING REPO: {} ({}) ************\n".format(rname, count))
         repo_path = get_repo_path(rname, root_dir)
         clone_repo(root_dir, repo_path, ssh_url, dbranch)
-        new_branch(repo_path, branch_name)
+        if not new_branch(repo_path, branch_name):
+            # this branch already exists
+            LOG.info("Skipping {}, branch already exists".format(rname))
+            repos_skipped.append(rname)
+            continue
+
         add_files(
             root_dir,
             repo_path,
@@ -93,6 +100,7 @@ def main(org, root_dir, exclude_private=False, interactive=False):
             count, len(prs), len(pr_failed)
         )
     )
+    LOG.info("Skipped these repos as branch was already defined: {}".format(repos_skipped))
     with open("output/prs.txt", "w") as f:
         f.write(json.dumps(prs))
 
@@ -124,8 +132,6 @@ def get_repos(gh_headers, org, exclude_private):
            )
        params["page"] = params["page"] + 1
        response = requests.get(org_url, headers=gh_headers, params=params).json()
-    return [("bok-choy", "git@github.com:openedx/bok-choy.git", "master", True)]
-
 
 
 def clone_repo(root_dir, repo_path, ssh_url, default_branch):
@@ -148,8 +154,13 @@ def new_branch(repo_path, branch_name):
     """
     Creates and pushes to remote a new branch called branch_name
     """
-    git("checkout", ["-b", branch_name], repo_path)
+    _, err = git("checkout", ["-b", branch_name], repo_path)
+    branch_error = "fatal: A branch named '{}' already exists.".format(branch_name)
+    if branch_error in str(err):
+        return False
+
     git("push", ["-u", "origin", branch_name], repo_path)
+    return True
 
 
 def add_files(root_dir, repo_path, wtemplate_name, has_issues, itemplate_name):
@@ -210,14 +221,14 @@ def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
 def mkdir(working_dir, dir_name):
     p1 = subprocess.Popen(
         ["/bin/mkdir", dir_name],
-        cwd=working_dir#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     _ = p1.communicate()
 
 def cp(working_dir, filepath, dest_path):
     p1 = subprocess.Popen(
         ["cp", filepath, dest_path],
-        cwd=working_dir#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     _ = p1.communicate()
 
@@ -227,9 +238,10 @@ def git(command, args, cwd):
     array.extend(args)
     p1 = subprocess.Popen(
         array,
-        cwd=cwd#, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    _ = p1.communicate()
+    out = p1.communicate()
+    return out
 
 def get_repo_path(repo, root_dir):
     if not root_dir.endswith('/'):
@@ -263,4 +275,4 @@ def interactive_commit(repo_path):
 
 if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
-    main("openedx", root_dir, True, True)
+    main("openedx", root_dir, True, False)
