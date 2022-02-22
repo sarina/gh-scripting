@@ -196,7 +196,9 @@ def add_files(root_dir, repo_path, wtemplate_name, has_issues, itemplate_name):
         cp(repo_path, "../override_config.yml", ".github/ISSUE_TEMPLATE/config.yml")
 
 def make_commit(repo_path, commit_msg):
-
+    """
+    Commits every new file & change in the repo, with the given commit_msg
+    """
     git("add", ["."], repo_path)
     git(
         "commit",
@@ -206,7 +208,13 @@ def make_commit(repo_path, commit_msg):
     git("push", [], repo_path)
 
 def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
-    # branch is pushed up, make PR
+    """
+    in the given org & repo, create a pr from specified branch into the default
+    branch with the supplied title and/or body.
+
+    pr_details (dict): specify the title and/or body of the pull request using
+    the keys "title" and "body". Optional; can supply an empty dict.
+    """
     post_url = "https://api.github.com/repos/{0}/{1}/pulls".format(org, rname)
     params = {
         "head": branch_name,
@@ -261,9 +269,10 @@ class PrCreationError(Exception):
         self.rjson = rjson
 
     def __str__(self):
-        status_string = "Status code: {}".format(self.status_code)
-        json_string = "{}".format(self.rjson)
-        return status_string + "\n" + json_string
+        error_string = "Problem creating pull request."
+        error_string += "\nGot status code: {}".format(self.status_code)
+        error_string += "\nJSON: {}".format(self.rjson)
+        return error_string
 
 def interactive_commit(repo_path):
     # don't call the `git` method because we always want this to go to stdout
