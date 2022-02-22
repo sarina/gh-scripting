@@ -42,7 +42,7 @@ def main(org, root_dir, exclude_private=False, interactive=False):
       awaits user confirmation
     """
     gh_headers = get_github_headers()
-    branch_name = "sarina/test1"
+    branch_name = "tcril/depr-automation-workflow"
     workflow_template_name = "add-depr-ticket-to-depr-board.yml"
     issue_template_name = "depr-ticket.yml"
     commit_msg = "build: add DEPR workflow automation"
@@ -96,15 +96,15 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         count = count + 1
 
     LOG.info(
-        "Processed {} repos; see output/prs.txt ({}) and output/failed.txt ({})".format(
+        "Processed {} repos; see output/prs.json ({}) and output/failed.json ({})".format(
             count, len(prs), len(pr_failed)
         )
     )
     LOG.info("Skipped these repos as branch was already defined: {}".format(repos_skipped))
-    with open("output/prs.txt", "w") as f:
+    with open("output/prs.json", "w") as f:
         f.write(json.dumps(prs))
 
-    with open("output/failed.txt", "w") as f2:
+    with open("output/failed.json", "w") as f2:
         f2.write(json.dumps(pr_failed))
 
 
@@ -207,7 +207,6 @@ def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
         "base": dbranch
     }
     params.update(pr_details)
-    LOG.info("\nparams: {}".format(params))
     response = requests.post(post_url, headers=gh_headers, json=params)
     if response.status_code != 201:
         LOG.info("PR failed with {}".format(response.status_code))
