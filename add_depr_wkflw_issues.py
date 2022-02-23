@@ -106,8 +106,11 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         except PrCreationError as pr_err:
             LOG.info(pr_err.__str__())
             # info you need to retry
-            pr_failed.append([org, rname, branch_name, dbranch, pr_details])
-        time.sleep(3) # Without, you hit secondary rate limits if you have more than ~50 repos
+            pr_failed.append((org, rname, branch_name, dbranch, pr_details))
+        # Without, you hit secondary rate limits if you have more than ~30
+        # repos. I tried 3, too short. 30, totally worked. there's a good number
+        # in between that i'm sure
+        time.sleep(5)
 
     LOG.info(
         "Processed {} repos; see output/prs.json ({}) and output/failed.json ({})".format(
