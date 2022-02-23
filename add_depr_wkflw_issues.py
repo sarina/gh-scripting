@@ -105,7 +105,8 @@ def main(org, root_dir, exclude_private=False, interactive=False):
             prs.append(pr_url)
         except PrCreationError as pr_err:
             LOG.info(pr_err.__str__())
-            pr_failed.append(rname)
+            # info you need to retry
+            pr_failed.append([org, rname, branch_name, dbranch, pr_details])
         time.sleep(3) # Without, you hit secondary rate limits if you have more than ~50 repos
 
     LOG.info(
