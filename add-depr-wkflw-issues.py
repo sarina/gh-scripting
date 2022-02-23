@@ -13,12 +13,13 @@ Description:
     reference issue template set will suffice).
 """
 
+import json
 import logging
 import os
+import requests
 import subprocess
 import sys
-import json
-import requests
+import time
 
 from ghelpers import get_github_headers
 
@@ -56,21 +57,27 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         "title": pr_details_wkflow_only["title"] + " & default issue overrides",
         "body": pr_details_wkflow_only["body"] + "\n\nSince this repo currently does not have Issues enabled, a special override configuration has been added to turn off all issue types except DEPR tickets. This will allow us to turn on Issues in this repo without opening the gates for other types of reports."
     }
-    count = 1
+
     prs = []
     pr_failed = []
     repos_skipped = []
 
     for repo_data in get_repos(gh_headers, org, exclude_private):
-        (rname, ssh_url, dbranch, has_issues) = repo_data
+        (rname, ssh_url, dbranch, has_issues, count) = repo_data
+        LOG.info("\n\n******* CHECKING REPO: {} ({}) ************".format(rname, count))
 
-        LOG.info("\n\n******* CHECKING REPO: {} ({}) ************\n".format(rname, count))
         repo_path = get_repo_path(rname, root_dir)
+        # clone repo; if exists, checkout the default branch & pull latest
         clone_repo(root_dir, repo_path, ssh_url, dbranch)
+        if issue_config_exists(repo_path):
+            # Some repos may already configure issues, so don't overwrite
+            LOG.info("Skipping {} (don't want to overwrite config.yml)".format(rname))
+            repos_skipped.append([rname, "config exists"])
+            continue
         if not new_branch(repo_path, branch_name):
             # this branch already exists
             LOG.info("Skipping {}, branch already exists".format(rname))
-            repos_skipped.append(rname)
+            repos_skipped.append([rname, "branch exists"])
             continue
 
         add_files(
@@ -99,7 +106,7 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         except PrCreationError as pr_err:
             LOG.info(pr_err.__str__())
             pr_failed.append(rname)
-        count = count + 1
+        time.sleep(3) # Without, you hit secondary rate limits if you have more than ~50 repos
 
     LOG.info(
         "Processed {} repos; see output/prs.json ({}) and output/failed.json ({})".format(
@@ -127,14 +134,17 @@ def get_repos(gh_headers, org, exclude_private):
     params = {"page": 1}
     if exclude_private:
         params["type"] = "public"
+    count = 0
     response = requests.get(org_url, headers=gh_headers, params=params).json()
     while len(response) > 0:
        for repo_data in response:
+           count += 1
            yield (
                repo_data['name'],
                repo_data['ssh_url'],
                repo_data['default_branch'],
-               repo_data['has_issues']
+               repo_data['has_issues'],
+               count
            )
        params["page"] = params["page"] + 1
        response = requests.get(org_url, headers=gh_headers, params=params).json()
@@ -155,6 +165,13 @@ def clone_repo(root_dir, repo_path, ssh_url, default_branch):
         git("checkout", [default_branch], repo_path)
         git("pull", [], repo_path)
 
+
+def issue_config_exists(repo_path):
+    """
+    returns True if the issue template config.yml file exists in the repo_path
+    """
+    path_to_config = repo_path + "/.github/ISSUE_TEMPLATE/config.yml"
+    return os.path.exists(path_to_config)
 
 def new_branch(repo_path, branch_name):
     """
