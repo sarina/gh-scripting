@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
 Used to close prs you've got in a list in a json file somewhere
-
-Better would have been: just iterate thru all your repos, search for any open
-PRs with the branch name that you've given the bulk prs, and closing that PR. Oh
-well fix that if you do it again. This would look like:
-
-gurl = "https://api.github.com/repos/openedx/{}/pulls".format(pr_json[1])
-getparams = {"head": "openedx:tcril/depr-automation-workflow"} # name of branch
-r = requests.get(gurl, headers=gh_headers, params=getparams).json()
-pr = r[0]['url'].replace("api.", "")
-pr = pr.replace("pulls/", "pull/")
-pr = pr.replace("repos/", "")
 """
+
+# Better may have been: just iterate thru all your repos, search for any open
+# PRs with the branch name that you've given the bulk prs, and closing that PR. Oh
+# well fix that if you do it again. This would look like:
+
+# gurl = "https://api.github.com/repos/openedx/{}/pulls".format(pr_json[1])
+# getparams = {"head": "openedx:tcril/depr-automation-workflow"} # name of branch
+# r = requests.get(gurl, headers=gh_headers, params=getparams).json()
+# pr = r[0]['url'].replace("api.", "")
+# pr = pr.replace("pulls/", "pull/")
+# pr = pr.replace("repos/", "")
 
 import argparse
 import datetime
@@ -36,11 +36,12 @@ def main(path_to_file):
     params = {
         "commit_title": "Merge DEPR automation workflow"
     }
+    rebase_params = {**params, **{"merge_method": "rebase"}}
     with open(path_to_file) as f:
         prs_to_close = json.load(f)
         for pr in prs_to_close:
+
             LOG.info("\n********* Closing: {}".format(pr))
-            time.sleep(2)
             org, repo, number = parse_fields(pr)
             merge_url = "https://api.github.com/repos/{0}/{1}/pulls/{2}/merge".format(org, repo, number)
             response = requests.put(merge_url, headers=gh_headers, json=params)
@@ -49,8 +50,19 @@ def main(path_to_file):
             if sc == 200:
                 LOG.info(" Merged - Success!\n")
             else:
+                rjson = response.json()
+                # If it says this, about half of the time it means you have to
+                # rebase before merging. Two repos require squashing, the rest
+                # require approvals. To keep it simple, let's only re-try w/ rebase.
+                if rjson[2]["message"] == "Merge commits are not allowed on this repository.":
+                    response = requests.put(merge_url, headers=gh_headers, json=rebase_params)
+                    sc = response.status_code
+                    if sc == 200:
+                        LOG.info(" Merged - Success!\n")
+                        continue
+                    rjson = response.json
                 LOG.info(" Failure - {}\n".format(sc))
-                failures.append((pr, sc, response.json()))
+                failures.append((pr, sc, rjson))
 
             time.sleep(2)
 
