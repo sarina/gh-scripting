@@ -1,0 +1,53 @@
+[
+    {
+        "url": "https://api.github.com/repos/openedx/.github/issues/2",
+        "number": 2,
+        "title": "Switch repos over from edx org shared workflows to openedx shared workflows",
+        "body": "Based on a meeting of @nedbat , @feanil , and @carlosmuniz.\r\n\r\nContext:\r\n* This .github repo was copied from https://github.com/edx/.github\r\n* We copied the repo instead of moving it because certain files *should* differ between the two orgs, such as the welcome page and security policy.\r\n* Furthermore, we want a core set of `./workflow-templates` (e.g., \"upgrade requirements\") to be available in both organizations, which will require some amount of those templates to exist, duplicated, in each organization's .github repo.\r\n* However, the _implementations_ of those shared workflows (in `./.github/workflows`) are currently duplicated between each organization, which isn't great.\r\n\r\nAC:\r\n* De-duplication:\r\n  * If a shared workflow implementation is related to Open edX, then it should be defined in this repo only.\r\n  * If a shared workflow implementation is edX-specific, then it should be defined in edX's .github repo only.\r\n  * Before deleting the extraneous workflow implementations, all references to shared workflow implementations must be updated to point at the logical organization.\r\n  * Fully completing this step will also require normalizing repos that currently use a _copy_ of the shared workflow instead of reference to the shared workflow.\r\n  * Example: the definition of commitlint belongs solely in openedx's .github repo. We will need to go to every repo in the openedx organization and make sure its commitlint workflow is a pointer to the shared openedx commitlint workflow, **not** the edx commitlint workflow and **not** a copied implementation.\r\n* Each organization's' .github repo should contain all the `./workflow-templates` it needs, duplicated between orgs if necessary.\r\n\r\n\r\n\r\n\r\n",
+        "created_at": "2022-01-05T17:06:04Z",
+        "updated_at": "2022-01-14T20:11:39Z",
+        "user": {
+            "login": "kdmccormick"
+        },
+        "labels": [
+            {
+                "name": "enhancement"
+            },
+            {
+                "name": "decoupling"
+            }
+        ]
+    },
+    {
+        "url": "https://api.github.com/repos/openedx/devstack/issues/877",
+        "number": 877,
+        "title": "Replace all occurances of 'studio' with 'cms'",
+        "body": "Pending acceptance of https://github.com/edx/edx-platform/pull/29534",
+        "created_at": "2022-01-04T16:55:51Z",
+        "updated_at": "2022-01-04T16:55:51Z",
+        "user": {
+            "login": "kdmccormick"
+        }
+    },
+    {
+        "url": "https://api.github.com/repos/openedx/devstack/issues/869",
+        "number": 869,
+        "title": "Move off of `edxops` DockerHub org images",
+        "body": "## Context\r\n\r\nThis issue is the successor of a private issue: https://github.com/openedx/decoupling/issues/58\r\n\r\nCurrently, Devstack's service images are hosted in the [`edxops`](https://hub.docker.com/u/edxops) DockerHub org. Considering devstack as a community tool, this is not ideal for three reasons:\r\n* `edxops` itself is owned by edX,\r\n* the images in `edxops` are built on an edX-managed Jenkins instance, and\r\n* the images themselves are built using Ansible and provisioned using Ansible and Paver, which is bad for developer experience.\r\n\r\n## Acceptance Criteria\r\n\r\n* Ensure that the Open edX community does not depend on edX for building or hosting Docker images.\r\n* Write up tasks to clean up any remaining artifacts once the first task has been achieved, including but not limited to:\r\n  * GitHub actions that push images we don't use any more.\r\n  * Jenkins DSL scripts and jobs for images we don't need any more. \r\n  * Devstack toggles and provisioning code paths related to experimental images.\r\n  * Unused Dockerfiles, their assets, and scripts that exist to support their images' use in devstack.\r\n\r\n## Potential Approaches\r\n\r\nA combination of these approaches may be warranted.\r\n\r\n### 1: Build the Ansible/Paver-based images using GitHub Actions and push them into the `openedx` DockerHub org.\r\n\r\nThis succeeds in removing our dependency on edX's DockerHub account and edX's build server. However, it means we'd still be using the non-ideal Ansible-baked images. Worse, we'd be tainting the `openedx` DockerHub organization with the Ansible images, which seems like a bit of a step backwards architecturally.\r\n\r\n### 2: Switch devstack to the experimental Ansible-free images from the `openedx` DockerHub org.\r\n\r\nThere are Dockerfiles checked into most service repos, which currently auto-push mostly-unsued yet idiomatic and Ansible-free images into the  `openedx` DockerHub org. We could switch devstack over from the `edxops` images to these existing `openedx` images, with some modifications to ensure that they new images work with devstack. This is harder than Approach 1 but would presumably be beneficial for devstack users and the containerization effort in general.\r\n\r\n### 3: Declare we're dropping devstack in favor of Tutor\r\n\r\nThe build-test-release WG has already decided that Tutor is the one-and-only community-supported installation method for Open edX. Although edX and some other community members still use devstack heavily, Tutor also seems to be the predominant development stack. If we felt that deprecating devstack in favor of Tutor was the right move, then the transition off of the `edxops` images be coupled to the transition to Tutor.\r\n\r\nAs for the `openedx` DockerHub org, we'd either shut it down, or perhaps make it a mirror for Tutor images.\r\n\r\n## Status\r\n\r\nI'm trying out Approach 2 for edx-platform and credentials. Relevant PRs:\r\n* https://github.com/edx/devstack/pull/866\r\n* https://github.com/edx/edx-platform/pull/29549\r\n* https://github.com/edx/credentials/pull/1510",
+        "created_at": "2021-12-14T16:49:47Z",
+        "updated_at": "2022-01-14T20:08:37Z",
+        "user": {
+            "login": "kdmccormick"
+        },
+        "labels": [
+            {
+                "name": "decoupling"
+            }
+        ],
+        "assignees": [
+            {
+                "login": "kdmccormick"
+            }
+        ]
+    }
+]

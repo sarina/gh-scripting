@@ -1,1 +1,17 @@
+__pycache__/
+_build
+
+# IDEs and text editors
+*~
+*.swp
+.idea/
+.project
+.pycharm_helpers/
+.pydevproject
+
+# OS X artifacts
+*.DS_Store
+
+# Anything in the output directory
 output/*
+output-export/*
