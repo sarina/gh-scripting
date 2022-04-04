@@ -60,7 +60,7 @@ def main(path_to_file):
                     if sc == 200:
                         LOG.info(" Merged - Success!\n")
                         continue
-                    rjson = response.json
+                    rjson = response.json()
                 LOG.info(" Failure - {}\n".format(sc))
                 failures.append((pr, sc, rjson))
 
