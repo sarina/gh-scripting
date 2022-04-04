@@ -88,7 +88,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-f", "--file",
+        "file",
         help="file to read from"
     )
 
