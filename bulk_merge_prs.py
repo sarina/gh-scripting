@@ -41,7 +41,7 @@ def main(path_to_file):
         prs_to_close = json.load(f)
         for pr in prs_to_close:
 
-            LOG.info("\n********* Closing: {}".format(pr))
+            LOG.info("********* Closing: {}".format(pr))
             org, repo, number = parse_fields(pr)
             merge_url = "https://api.github.com/repos/{0}/{1}/pulls/{2}/merge".format(org, repo, number)
             response = requests.put(merge_url, headers=gh_headers, json=params)
@@ -54,7 +54,7 @@ def main(path_to_file):
                 # If it says this, about half of the time it means you have to
                 # rebase before merging. Two repos require squashing, the rest
                 # require approvals. To keep it simple, let's only re-try w/ rebase.
-                if rjson[2]["message"] == "Merge commits are not allowed on this repository.":
+                if rjson["message"] == "Merge commits are not allowed on this repository.":
                     response = requests.put(merge_url, headers=gh_headers, json=rebase_params)
                     sc = response.status_code
                     if sc == 200:
@@ -66,7 +66,8 @@ def main(path_to_file):
 
             time.sleep(2)
 
-    LOG.info(" Writing failures to: {}".format(path_to_failures))
+    numFail = len(failures)
+    LOG.info(f" Writing {numFail} failures to: {path_to_failures}")
     with open(path_to_failures, 'w') as f:
         f.write(json.dumps(failures))
 
