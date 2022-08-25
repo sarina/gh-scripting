@@ -1,14 +1,16 @@
 # This workflow runs when a comment is made on the ticket
 # If the comment starts with "assign me" it assigns the author to the
-# ticket
+# ticket (case insensitive)
 
-name: Add newly created GitHub Request tickets to the tCRIL Engineering project board
+name: Assign comment author to ticket if they say "assign me"
 on:
   issue_comment:
     types: [created]
 jobs:
   add_assignee:
     runs-on: ubuntu-latest
+
+    if: ${{ startsWith(github.event.comment.body, 'assign me') }}
     steps:
       - uses: actions-ecosystem/action-add-assignees@v1
         with:
