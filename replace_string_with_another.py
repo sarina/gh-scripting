@@ -7,17 +7,18 @@ Requires:
     GITHUB_AUTH token in local environment
 
 Description:
-    For each repo in your org, looks for a given string. If
-    the string exists, switches to a new branch, replaces the
-    string with a new string, commits changes, and opens a PR.
-    Everything currently hard-coded.
+    For each repo in your org, looks for a given string. If the string exists,
+    switches to a new branch, replaces the string with a new string, commits
+    changes, and opens a PR. Everything currently hard-coded.
+
+Note:
+    swap_strings has hardcoded shell commands that are wonky due to OSX. If
+    you're not on OSX you should examine and change them.
 """
 
 import datetime
 import json
 import logging
-import os
-import requests
 import subprocess
 import sys
 import time
@@ -29,7 +30,7 @@ from ghelpers import *
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
-def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False, interactive=False):
+def main(org, root_dir, old_string, new_string, exclude_private=False, interactive=False):
     """
     Goes through all repos in an org, clones them (or switches to the default
     branch and then pulls latest changes), searches for the specified string, if
@@ -39,8 +40,8 @@ def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False
     * org (str): GitHub organization
     * root_dir (str): path to directory to clone repos (on Mac, may look like
       `/Users/<uname>/path/to/dir`
-    * string_to_find: what string we're looking to see if each repo has
-    * string_to_replace: if string_to_find is found, what we should replace it with
+    * old_string: what string we're looking to see if each repo has
+    * new_string: if old_string is found, what we should replace it with
     * exclude_private (bool): if True, script skips private repos (default
       False)
     * interactive (bool): if True, pauses before committing files upstream and
@@ -66,9 +67,9 @@ def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False
         # clone repo; if exists, checkout the default branch & pull latest
         clone_repo(root_dir, repo_path, ssh_url, dbranch)
 
-        # TODO: Search for the string; fail fast if none exist
-        if not found(string_to_find):
-            LOG.info("Did not find string {}".format(string_to_find))
+        # Search for the string; fail fast if none exist
+        if not found(old_string, repo_path):
+            LOG.info("Did not find string {}".format(old_string))
 
         if not new_branch(repo_path, branch_name):
             # this branch already exists
@@ -76,8 +77,8 @@ def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False
             repos_skipped.append([rname, "branch exists"])
             continue
 
-        # TODO: Swap old string for new string
-        swap_strings(string_to_find, string_to_replace)
+        # Swap old string for new string
+        swap_strings(old_string, new_string, repo_path)
 
         if interactive:
             try:
@@ -113,9 +114,57 @@ def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False
     with open(f"output/failed_{ts}.json", "w") as f2:
         f2.write(json.dumps(pr_failed))
 
+def found(old_string, repo_path):
+    """
+    Looks through the repo specified by `repo_path` to see if there are any
+    occurances of `old_string`
+
+    Returns bool: True if the string is found, else False
+    """
+    # grep -r old_string . returns an array of which files match the string.
+    proc = subprocess.Popen(
+        f"grep -r {old_string} .",
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True
+    )
+    res, _ = proc.communicate()
+    return len(res) > 0
+
+
+def swap_strings(old_string, new_string, repo_path):
+    """
+    Replaces all occurances of `old_string` in the repo with `new_string`
+    """
+    # Command one: Look for files with the old_string
+    c1 = f'/usr/bin/grep -rl "{old_string}"'
+    # Command two: Exclude .git/ dir: grep -Evw ".git"
+    c2 = f'/usr/bin/grep -Evw ".git"'
+    # Command three: Swap!
+    # delimiter for sed; rather than escape we'll use _ if we're replacing a URL
+    d = "/"
+    if "/" in old_string or "/" in new_string:
+        d = "_"
+    # NOTE!!! This is the OSX command, drop `LC_ALL=C` and `'' -e` if not OSX!
+    c3 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
+
+    # Now chain those calls together in a subprocess wheee
+    chained = c1 + " | " + c2 + " | " + c3
+    print(chained)
+    proc = subprocess.Popen(
+        chained,
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True
+    )
+
+    _ = proc.communicate()
+
 
 if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
-    string_to_find = "github.com/edx"
-    string_to_replace = "github.com/openedx"
-    main("openedx", root_dir, string_to_find, string_to_replace, exclude_private=True, interactive=True)
+    old_string = "github.com/edx"
+    new_string = "github.com/openedx"
+    main("openedx", root_dir, string_to_find, new_string, exclude_private=True, interactive=True)

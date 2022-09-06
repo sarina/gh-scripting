@@ -78,11 +78,19 @@ def get_repos(gh_headers, org, exclude_private):
 
 
 def git(command, args, cwd):
+    """
+    Executes a Git command.
+    * command: string
+    * args: list of command line arguments
+    * cwd: string, which working dir to execute the command in
+    """
     array = ["/opt/homebrew/bin/git", command]
     array.extend(args)
     p1 = subprocess.Popen(
         array,
-        cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
     )
     out = p1.communicate()
     return out
