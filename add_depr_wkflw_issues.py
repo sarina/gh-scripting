@@ -15,13 +15,10 @@ Description:
 
 import json
 import logging
-import os
-import requests
-import subprocess
 import sys
 import time
 
-from ghelpers import get_github_headers
+from ghelpers import *
 
 
 # Switch to DEBUG for additional debugging info
@@ -125,71 +122,6 @@ def main(org, root_dir, exclude_private=False, interactive=False):
         f2.write(json.dumps(pr_failed))
 
 
-def get_repos(gh_headers, org, exclude_private):
-    """
-    Generator
-    Yields a 4-tuple of repo data:
-    - repo name (str)
-    - ssh url (str)
-    - default branch name (str)
-    - has issues (boolean)
-    """
-    org_url = "https://api.github.com/orgs/{0}/repos".format(org)
-    params = {"page": 1}
-    if exclude_private:
-        params["type"] = "public"
-    count = 0
-    response = requests.get(org_url, headers=gh_headers, params=params).json()
-    while len(response) > 0:
-       for repo_data in response:
-           count += 1
-           yield (
-               repo_data['name'],
-               repo_data['ssh_url'],
-               repo_data['default_branch'],
-               repo_data['has_issues'],
-               count
-           )
-       params["page"] = params["page"] + 1
-       response = requests.get(org_url, headers=gh_headers, params=params).json()
-
-
-def clone_repo(root_dir, repo_path, ssh_url, default_branch):
-    """
-    If not already cloned into root_dir, clones repo at that location. If
-    cloned, switches to the repo's default_branch and pulls down the latest
-    changes.
-    """
-    path_exists = os.path.exists(repo_path)
-
-    if not path_exists:
-        git("clone", [ssh_url], root_dir)
-
-    else:
-        git("checkout", [default_branch], repo_path)
-        git("pull", [], repo_path)
-
-
-def issue_config_exists(repo_path):
-    """
-    returns True if the issue template config.yml file exists in the repo_path
-    """
-    path_to_config = repo_path + "/.github/ISSUE_TEMPLATE/config.yml"
-    return os.path.exists(path_to_config)
-
-def new_branch(repo_path, branch_name):
-    """
-    Creates and pushes to remote a new branch called branch_name
-    """
-    _, err = git("checkout", ["-b", branch_name], repo_path)
-    branch_error = "fatal: A branch named '{}' already exists.".format(branch_name)
-    if branch_error in str(err):
-        return False
-
-    git("push", ["-u", "origin", branch_name], repo_path)
-    return True
-
-
 def add_files(root_dir, repo_path, wtemplate_name, has_issues, itemplate_name):
     """
     For the given repo (represented by the repo_path) which resides in the
@@ -216,101 +148,12 @@ def add_files(root_dir, repo_path, wtemplate_name, has_issues, itemplate_name):
         cp(repo_path, issue_template_path, ".github/ISSUE_TEMPLATE")
         cp(repo_path, "../override_config.yml", ".github/ISSUE_TEMPLATE/config.yml")
 
-def make_commit(repo_path, commit_msg):
+def issue_config_exists(repo_path):
     """
-    Commits every new file & change in the repo, with the given commit_msg
+    returns True if the issue template config.yml file exists in the repo_path
     """
-    git("add", ["."], repo_path)
-    git(
-        "commit",
-        ["-a", "-m", commit_msg],
-        repo_path
-    )
-    git("push", [], repo_path)
-
-def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
-    """
-    in the given org & repo, create a pr from specified branch into the default
-    branch with the supplied title and/or body.
-
-    pr_details (dict): specify the title and/or body of the pull request using
-    the keys "title" and "body". Optional; can supply an empty dict.
-    """
-    post_url = "https://api.github.com/repos/{0}/{1}/pulls".format(org, rname)
-    params = {
-        "head": branch_name,
-        "base": dbranch
-    }
-    params.update(pr_details)
-    response = requests.post(post_url, headers=gh_headers, json=params)
-    if response.status_code != 201:
-        raise PrCreationError(response.status_code, response.json())
-
-    pr_url = response.json()["html_url"]
-    LOG.info("PR success: {}".format(pr_url))
-    return pr_url
-
-def mkdir(working_dir, dir_name):
-    p1 = subprocess.Popen(
-        ["/bin/mkdir", dir_name],
-        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    _ = p1.communicate()
-
-def cp(working_dir, filepath, dest_path):
-    p1 = subprocess.Popen(
-        ["cp", filepath, dest_path],
-        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    _ = p1.communicate()
-
-
-def git(command, args, cwd):
-    array = ["/opt/homebrew/bin/git", command]
-    array.extend(args)
-    p1 = subprocess.Popen(
-        array,
-        cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    out = p1.communicate()
-    return out
-
-def get_repo_path(repo, root_dir):
-    if not root_dir.endswith('/'):
-        root_dir = root_dir + '/'
-    return root_dir + repo
-
-class RepoError(Exception):
-    pass
-
-
-class PrCreationError(Exception):
-    def __init__(self, status_code, rjson):
-        self.status_code = status_code
-        self.rjson = rjson
-
-    def __str__(self):
-        error_string = "Problem creating pull request."
-        error_string += "\nGot status code: {}".format(self.status_code)
-        error_string += "\nJSON: {}".format(self.rjson)
-        return error_string
-
-def interactive_commit(repo_path):
-    # don't call the `git` method because we always want this to go to stdout
-    p1 = subprocess.Popen(
-        ["/opt/homebrew/bin/git", "status"],
-        cwd=repo_path
-    )
-    _ = p1.communicate()
-
-    cmd = input("Push changes? Y/N: ")
-    while cmd.lower() not in ["y", "n"]:
-        cmd = input("Push changes? Y/N: ")
-    if cmd.lower() == 'n':
-        cmd2 = input("Press Q to quit program, other inputs will continue to next repo: ")
-        if cmd2.lower() == "q":
-            raise KeyboardInterrupt
-        raise RepoError
+    path_to_config = repo_path + "/.github/ISSUE_TEMPLATE/config.yml"
+    return os.path.exists(path_to_config)
 
 
 if __name__ == "__main__":
