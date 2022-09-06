@@ -22,7 +22,7 @@ import subprocess
 import sys
 import time
 
-from ghelpers import get_github_headers
+from ghelpers import get_github_headers, get_repos
 
 
 # Switch to DEBUG for additional debugging info
@@ -112,35 +112,6 @@ def main(org, root_dir, string_to_find, string_to_replace, exclude_private=False
 
     with open(f"output/failed_{ts}.json", "w") as f2:
         f2.write(json.dumps(pr_failed))
-
-
-def get_repos(gh_headers, org, exclude_private):
-    """
-    Generator
-    Yields a 4-tuple of repo data:
-    - repo name (str)
-    - ssh url (str)
-    - default branch name (str)
-    - has issues (boolean)
-    """
-    org_url = "https://api.github.com/orgs/{0}/repos".format(org)
-    params = {"page": 1}
-    if exclude_private:
-        params["type"] = "public"
-    count = 0
-    response = requests.get(org_url, headers=gh_headers, params=params).json()
-    while len(response) > 0:
-       for repo_data in response:
-           count += 1
-           yield (
-               repo_data['name'],
-               repo_data['ssh_url'],
-               repo_data['default_branch'],
-               repo_data['has_issues'],
-               count
-           )
-       params["page"] = params["page"] + 1
-       response = requests.get(org_url, headers=gh_headers, params=params).json()
 
 
 def clone_repo(root_dir, repo_path, ssh_url, default_branch):
