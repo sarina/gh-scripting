@@ -167,4 +167,4 @@ if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
     old_string = "github.com/edx"
     new_string = "github.com/openedx"
-    main("openedx", root_dir, string_to_find, new_string, exclude_private=True, interactive=True)
+    main("openedx", root_dir, old_string, new_string, exclude_private=True, interactive=True)
