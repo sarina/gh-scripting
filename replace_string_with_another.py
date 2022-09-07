@@ -60,7 +60,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
     repos_skipped = []
 
     for repo_data in get_repos(gh_headers, org, exclude_private):
-        (rname, ssh_url, dbranch, has_issues, count) = repo_data
+        (rname, ssh_url, dbranch, _, count) = repo_data
         LOG.info("\n\n******* CHECKING REPO: {} ({}) ************".format(rname, count))
 
         repo_path = get_repo_path(rname, root_dir)
@@ -70,6 +70,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
         # Search for the string; fail fast if none exist
         if not found(old_string, repo_path):
             LOG.info("Did not find string {}".format(old_string))
+            continue
 
         if not new_branch(repo_path, branch_name):
             # this branch already exists
