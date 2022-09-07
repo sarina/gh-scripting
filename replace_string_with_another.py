@@ -97,9 +97,9 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             # info you need to retry
             pr_failed.append((org, rname, branch_name, dbranch, pr_details))
         # Without, you hit secondary rate limits if you have more than ~30
-        # repos. I tried 3, too short. 30, totally worked. there's a good number
+        # repos. I tried 3, too short. 5, got through 80. 30, totally worked. there's a good number
         # in between that i'm sure
-        time.sleep(5)
+        time.sleep(15)
 
     LOG.info(
         "Processed {} repos; see output/prs.json ({}) and output/failed.json ({})".format(
@@ -137,6 +137,9 @@ def found(old_string, repo_path):
 def swap_strings(old_string, new_string, repo_path):
     """
     Replaces all occurances of `old_string` in the repo with `new_string`
+    recursively starting in the root directory given by `repo_path`
+
+    Does not inspect the `.git/` directory.
     """
     # Command one: Look for files with the old_string
     c1 = f'/usr/bin/grep -rl "{old_string}"'
@@ -152,7 +155,6 @@ def swap_strings(old_string, new_string, repo_path):
 
     # Now chain those calls together in a subprocess wheee
     chained = c1 + " | " + c2 + " | " + c3
-    print(chained)
     proc = subprocess.Popen(
         chained,
         cwd=repo_path,
@@ -168,4 +170,4 @@ if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
     old_string = "github.com/edx"
     new_string = "github.com/openedx"
-    main("openedx", root_dir, old_string, new_string, exclude_private=True, interactive=True)
+    main("openedx", root_dir, old_string, new_string, exclude_private=False, interactive=False)
