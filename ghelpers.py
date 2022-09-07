@@ -116,8 +116,9 @@ def new_branch(repo_path, branch_name):
     Creates and pushes to remote a new branch called branch_name
     """
     _, err = git("checkout", ["-b", branch_name], repo_path)
-    branch_error = "fatal: A branch named '{}' already exists.".format(branch_name)
-    if branch_error in str(err):
+    err = err.decode('utf-8')
+    branch_error = f"fatal: a branch named '{branch_name}' already exists"
+    if branch_error in err:
         return False
 
     git("push", ["-u", "origin", branch_name], repo_path)
