@@ -16,18 +16,6 @@ Note:
     you're not on OSX you should examine and change them.
 """
 
-## TODO
-# 1. Try/except logic
-# 2. check out branch (gracefully fail if does not exist)
-# 3. updated commands
-# if pylintrc or .editorconfig or commitlint.config.js exist:
-## git reset --hard HEAD~1
-## for each filename:
-### if filename exists:
-#### edx_lint write <filename>
-# git commit "chore: run `edx_lint` update with the current version of the repo."
-# run rest of script
-
 import datetime
 import json
 import logging
