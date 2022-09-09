@@ -97,10 +97,10 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             exists = False
             for fname in edx_lint_files:
                 if find_file(fname, repo_path):
-                    LOG.info(f"found file {fname}")  # TODO delete debug
                     exists = True
             if not exists:
                 LOG.info("Did not find any of the edx_lint files")
+                f.write(f"NO-OP: {rname}")
                 continue
 
             # Checkout the already-existing branch_name
@@ -111,28 +111,31 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                 f.write(f"SKIP: {rname}\n")
                 continue
 
+            # Reset the branch
+            git("reset", "--hard HEAD", repo_path)
+
+            # Go through each special file and run edx_lint on them
+            for fname in edx_lint_files:
+                if find_file(fname, repo_path):
+                    run_edx_lint(fname, repo_path)
+
+            if interactive:
+                try:
+                    interactive_commit(repo_path)
+                except RepoError:
+                    # move on to next repo
+                    continue
+
+            # Make a commit for the edx_lint update
+            make_commit(repo_path, "chore: run `edx_lint` update with the current version of the repo.")
+
             # # Swap old string for new string
-            # swap_strings(old_string, new_string, repo_path)
+            swap_strings(old_string, new_string, repo_path)
 
-            # if interactive:
-            #     try:
-            #         interactive_commit(repo_path)
-            #     except RepoError:
-            #         # move on to next repo
-            #         continue
+            make_commit(repo_path, commit_msg)
 
-            # make_commit(repo_path, commit_msg)
-            # try:
-            #     pr_url = make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details)
-            #     #prs.append(pr_url)
-            #     count_prs += 1
-            #     f.write(f"SUCCESS: {pr_url}\n")
-            # except PrCreationError as pr_err:
-            #     LOG.info(pr_err.__str__())
-            #     # info you need to retry
-            #     #pr_failed.append((org, rname, branch_name, dbranch, pr_details))
-            #     count_failed += 1
-            #     f.write(f"RETRY: {org}, {rname}, {branch_name}, {dbranch}, {pr_details}\n")
+            # PR IS ALREADY MADE SO DO NOT NEED TO UPDATE PR
+
             # Without, you hit secondary rate limits if you have more than ~30
             # repos. I tried 3, too short. 5, got through 80. 30, totally worked.
             # there's a good number in between that i'm sure but they don't help
@@ -141,7 +144,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             # further limited and will not include a Retry-After header in the
             # response. Please create this content at a reasonable pace to avoid
             # further limiting.
-            time.sleep(2)
+            time.sleep(30)
 
     LOG.info(
         f"Processed {count} repos; {count_prs} PRs successfully made and {count_failed} PRs failed to be made"
@@ -206,18 +209,34 @@ def find_file(fname, repo_path):
     fname (str) is the exact filename of a file you seek
     """
     proc = subprocess.Popen(
-        f"find . -name {fname}",
+        f"ls {fname}",
         cwd=repo_path,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=True
     )
-    out = proc.communicate()
+    # Results will be either ("filename", '') or ('', does not exist error msg)
+    out, _ = proc.communicate()
+
     return len(out) > 0
+
+
+def run_edx_lint(fname, repo_path):
+    """
+    Runs `edx_lint write <fname>`
+    """
+    proc = subprocess.Popen(
+        f"edx_lint write {fname}",
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True
+    )
+    _ = proc.communicate()
 
 
 if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
     old_string = "github.com/edx"
     new_string = "github.com/openedx"
-    main("openedx", root_dir, old_string, new_string, exclude_private=False, interactive=False)
+    main("openedx", root_dir, old_string, new_string, exclude_private=False, interactive=True)
