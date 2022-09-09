@@ -114,10 +114,28 @@ def clone_repo(root_dir, repo_path, ssh_url, default_branch):
 def new_branch(repo_path, branch_name):
     """
     Creates and pushes to remote a new branch called branch_name
+
+    Returns False if branch_name already exists
     """
     _, err = git("checkout", ["-b", branch_name], repo_path)
     err = err.decode('utf-8')
     branch_error = f"fatal: a branch named '{branch_name}' already exists"
+    if branch_error in err:
+        return False
+
+    git("push", ["-u", "origin", branch_name], repo_path)
+    return True
+
+
+def checkout_branch(repo_path, branch_name):
+    """
+    Tries to check out existing branch, branch_name
+
+    Returns False if branch_name does not exist
+    """
+    _, err = git("checkout", [branch_name], repo_path)
+    err = err.decode('utf-8')
+    branch_error = f"error: pathspec '{branch_name}' did not match any file(s) known to git"
     if branch_error in err:
         return False
 
