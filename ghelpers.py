@@ -138,8 +138,6 @@ def checkout_branch(repo_path, branch_name):
     branch_error = f"error: pathspec '{branch_name}' did not match any file(s) known to git"
     if branch_error in err:
         return False
-
-    git("push", ["-u", "origin", branch_name], repo_path)
     return True
 
 
@@ -154,6 +152,12 @@ def make_commit(repo_path, commit_msg):
         repo_path
     )
     git("push", [], repo_path)
+
+def force_push(repo_path):
+    """
+    Executes "git push -f"
+    """
+    git("push", ["-f"], repo_path)
 
 def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     """
@@ -232,3 +236,20 @@ def interactive_commit(repo_path):
         if cmd2.lower() == "q":
             raise KeyboardInterrupt
         raise RepoError
+
+
+def git_reset(num_commits, repo_path):
+    """
+    Does "git reset --hard HEAD~{num_commits}
+    """
+    # For the life of me I cannot figure out why using git() wasn't working -
+    # it was not passing through the "--" on the "--hard" arg. :shrug:
+    proc = subprocess.Popen(
+        f"git reset --hard HEAD~{num_commits}",
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True
+    )
+    out = proc.communicate()
+    return out
