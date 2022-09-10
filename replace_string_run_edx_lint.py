@@ -70,8 +70,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
         ".editorconfig",
         "commitlint.config.js"
     ]
-    count_prs = 0
-    count_failed = 0
+    count_commits = 0
     count_skipped = 0
 
     ts = str(datetime.datetime.now())[:19]
@@ -138,6 +137,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
 
             make_commit(repo_path, commit_msg)
             force_push(repo_path)
+            count_commits += 1
             # PR IS ALREADY MADE SO DO NOT NEED TO UPDATE PR
 
             # Without, you hit secondary rate limits if you have more than ~30
@@ -151,9 +151,9 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             time.sleep(30)
 
     LOG.info(
-        f"Processed {count} repos; {count_prs} PRs successfully made and {count_failed} PRs failed to be made"
+        f"Processed {count} repos; {count_commits} branches successfully updated"
     )
-    LOG.info(f"Skipped {count_skipped} repos as branch was already defined or string didn't exist")
+    LOG.info(f"Skipped {count_skipped} repos as branch was non-existant or string didn't exist")
 
 
 def found(old_string, repo_path):
