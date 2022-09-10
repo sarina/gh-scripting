@@ -77,6 +77,8 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
         for repo_data in get_repos(gh_headers, org, exclude_private):
             (rname, ssh_url, dbranch, _, count) = repo_data
             LOG.info("\n\n******* CHECKING REPO: {} ({}) ************".format(rname, count))
+            if rname == 'django-wiki':
+                LOG.info("skipping django-wiki")
 
             repo_path = get_repo_path(rname, root_dir)
             # clone repo; if exists, checkout the default branch & pull latest
@@ -99,6 +101,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             if not exists:
                 LOG.info("Did not find any of the edx_lint files")
                 f.write(f"NO LINT FILES: {rname}")
+                count_skipped += 1
                 continue
 
             # Checkout the already-existing branch_name
@@ -177,19 +180,18 @@ def swap_strings(old_string, new_string, repo_path):
     Does not inspect the `.git/` directory.
     """
     # Command one: Look for files with the old_string
-    c1 = f'/usr/bin/grep -rl "{old_string}"'
-    # Command two: Exclude .git/ dir: grep -Evw ".git"
-    c2 = f'/usr/bin/grep -Evw ".git"'
-    # Command three: Swap!
+    c1 = f'/usr/bin/grep -rl --exclude-dir=.git "{old_string}"'
+
+    # Command two: Swap!
     # delimiter for sed; rather than escape we'll use _ if we're replacing a URL
     d = "/"
     if "/" in old_string or "/" in new_string:
         d = "_"
     # NOTE!!! This is the OSX command, drop `LC_ALL=C` and `'' -e` if not OSX!
-    c3 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
+    c2 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
 
     # Now chain those calls together in a subprocess wheee
-    chained = c1 + " | " + c2 + " | " + c3
+    chained = c1 + " | " + c2
     proc = subprocess.Popen(
         chained,
         cwd=repo_path,

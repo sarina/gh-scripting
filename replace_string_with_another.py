@@ -146,20 +146,19 @@ def swap_strings(old_string, new_string, repo_path):
 
     Does not inspect the `.git/` directory.
     """
-    # Command one: Look for files with the old_string
-    c1 = f'/usr/bin/grep -rl "{old_string}"'
-    # Command two: Exclude .git/ dir: grep -Evw ".git"
-    c2 = f'/usr/bin/grep -Evw ".git"'
-    # Command three: Swap!
+    # Command one: Look for files with the old_string, skipping the .git dir
+    c1 = f'/usr/bin/grep -rl --exclude-dir=.git "{old_string}"'
+
+    # Command two: Swap!
     # delimiter for sed; rather than escape we'll use _ if we're replacing a URL
     d = "/"
     if "/" in old_string or "/" in new_string:
         d = "_"
     # NOTE!!! This is the OSX command, drop `LC_ALL=C` and `'' -e` if not OSX!
-    c3 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
+    c2 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
 
     # Now chain those calls together in a subprocess wheee
-    chained = c1 + " | " + c2 + " | " + c3
+    chained = c1 + " | " + c2
     proc = subprocess.Popen(
         chained,
         cwd=repo_path,
