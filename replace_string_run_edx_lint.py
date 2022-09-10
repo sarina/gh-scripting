@@ -79,8 +79,11 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
         for repo_data in get_repos(gh_headers, org, exclude_private):
             (rname, ssh_url, dbranch, _, count) = repo_data
             LOG.info("\n\n******* CHECKING REPO: {} ({}) ************".format(rname, count))
-            if rname == 'django-wiki':
-                LOG.info("skipping django-wiki")
+            # used these as my two testing repos, they don't need to be reprocessed
+            if rname in ['django-wiki', 'XBlock']:
+                LOG.info(f"skipping {rname}")
+                count_skipped += 1
+                continue
 
             repo_path = get_repo_path(rname, root_dir)
             # clone repo; if exists, checkout the default branch & pull latest
@@ -102,7 +105,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                     exists = True
             if not exists:
                 LOG.info("Did not find any of the edx_lint files")
-                f.write(f"NO LINT FILES: {rname}")
+                f.write(f"NO LINT FILES: {rname}\n")
                 count_skipped += 1
                 continue
 
@@ -134,21 +137,16 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
 
             # # Swap old string for new string
             swap_strings(old_string, new_string, repo_path)
-
             make_commit(repo_path, commit_msg)
             force_push(repo_path)
+
+            f.write(f"SUCCESS: {rname}\n")
             count_commits += 1
             # PR IS ALREADY MADE SO DO NOT NEED TO UPDATE PR
 
-            # Without, you hit secondary rate limits if you have more than ~30
-            # repos. I tried 3, too short. 5, got through 80. 30, totally worked.
-            # there's a good number in between that i'm sure but they don't help
-            # much. From GH docs: Requests that create content which triggers
-            # notifications, such as issues, comments and pull requests, may be
-            # further limited and will not include a Retry-After header in the
-            # response. Please create this content at a reasonable pace to avoid
-            # further limiting.
-            time.sleep(30)
+            # Without PR create calls, this should be able to be lower
+            # than 15, but using 15 to be safe
+            time.sleep(15)
 
     LOG.info(
         f"Processed {count} repos; {count_commits} branches successfully updated"
