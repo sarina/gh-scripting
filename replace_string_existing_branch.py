@@ -67,12 +67,14 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
     count_skipped = 0
 
     ts = str(datetime.datetime.now())[:19]
-    filename = f"output/run_edxlint_{ts}.json"
+    filename = f"output/replace_existing_branch_{ts}.json"
     with open(filename, "w") as f:
         for repo_data in get_repos(gh_headers, org, exclude_private):
             (rname, ssh_url, dbranch, _, count) = repo_data
             LOG.info("\n\n******* CHECKING REPO: {} ({}) ************".format(rname, count))
-
+            if rname == "cs_comments_service":
+                LOG.info(" skipping (was test repo)")
+                continue
             repo_path = get_repo_path(rname, root_dir)
             # clone repo; if exists, checkout the default branch & pull latest
             clone_repo(root_dir, repo_path, ssh_url, dbranch)
@@ -113,10 +115,12 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                     LOG.info(pr_err.__str__())
                     # info you need to retry
                     f.write(f"FAILED TO MAKE PR: {org}, {rname}, {branch_name}, {dbranch}, {pr_details}")
+                time.sleep(30)
             else:
                 LOG.info(f" committed to existing branch")
                 f.write(f"CREATED COMMIT: {rname}")
                 count_commits += 1
+                time.sleep(10)
 
             # Without, you hit secondary rate limits if you have more than ~30
             # repos. I tried 3, too short. 5, got through 80. 30, totally worked.
@@ -126,7 +130,8 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
             # further limited and will not include a Retry-After header in the
             # response. Please create this content at a reasonable pace to avoid
             # further limiting.
-            time.sleep(30)
+
+            #time.sleep(30)
 
     LOG.info(
         f"Processed {count} repos; {count_prs} PRs successfully made and {count_commits} commits created on existing branches"
@@ -186,6 +191,6 @@ def swap_strings(old_string, new_string, repo_path):
 
 if __name__ == "__main__":
     root_dir = "/Users/sarinacanelake/openedx/"
-    old_string = "github.com/edx"
-    new_string = "github.com/openedx"
+    old_string = "uses: edx/.github"
+    new_string = "uses: openedx/.github"
     main("openedx", root_dir, old_string, new_string, exclude_private=False, interactive=False)
