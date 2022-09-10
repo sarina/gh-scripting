@@ -114,6 +114,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                     # info you need to retry
                     f.write(f"FAILED TO MAKE PR: {org}, {rname}, {branch_name}, {dbranch}, {pr_details}")
             else:
+                LOG.info(f" committed to existing branch")
                 f.write(f"CREATED COMMIT: {rname}")
                 count_commits += 1
 

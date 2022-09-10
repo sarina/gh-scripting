@@ -137,8 +137,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
 
             # # Swap old string for new string
             swap_strings(old_string, new_string, repo_path)
-            make_commit(repo_path, commit_msg)
-            force_push(repo_path)
+            make_commit(repo_path, commit_msg, force=True)
 
             f.write(f"SUCCESS: {rname}\n")
             count_commits += 1

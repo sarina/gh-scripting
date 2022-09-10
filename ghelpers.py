@@ -141,9 +141,12 @@ def checkout_branch(repo_path, branch_name):
     return True
 
 
-def make_commit(repo_path, commit_msg):
+def make_commit(repo_path, commit_msg, force=False):
     """
-    Commits every new file & change in the repo, with the given commit_msg
+    Commits every new file & change in the repo, with the given commit_msg,
+    and pushes to origin
+
+    if `force` is True, will execute a force-push of the commits.
     """
     git("add", ["."], repo_path)
     git(
@@ -151,13 +154,11 @@ def make_commit(repo_path, commit_msg):
         ["-a", "-m", commit_msg],
         repo_path
     )
-    git("push", [], repo_path)
+    if force:
+        git("push", ["-f"], repo_path)
+    else:
+        git("push", [], repo_path)
 
-def force_push(repo_path):
-    """
-    Executes "git push -f"
-    """
-    git("push", ["-f"], repo_path)
 
 def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     """
