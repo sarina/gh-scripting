@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 Usage:
-    python -m replace_string_with_another.py
+    python -m replace_string_existing_branch.py
 
 Requires:
     GITHUB_AUTH token in local environment
 
 Description:
-    For each repo in your org, looks for a given string. If the string exists,
-    switches to a new branch, replaces the string with a new string, commits
-    changes, and opens a PR. Everything currently hard-coded.
+    Assumes you've run `replace_string_with_another`, thus repos already have
+    your working branch defined, and you don't want to open a new set of PRs.
+
+    Checks out existing branch (or re-creates if existing was already merged)
+    and performs another string swap with the new strings, and makes a new
+    commit.
 
 Note:
     swap_strings has hardcoded shell commands that are wonky due to OSX. If
