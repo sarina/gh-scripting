@@ -109,29 +109,18 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                 try:
                     LOG.info(f" Making a pull request")
                     pr_url = make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details)
-                    f.write(f"CREATED PR: {pr_url}")
+                    f.write(f"CREATED PR: {pr_url}\n")
                     count_prs += 1
                 except PrCreationError as pr_err:
                     LOG.info(pr_err.__str__())
                     # info you need to retry
-                    f.write(f"FAILED TO MAKE PR: {org}, {rname}, {branch_name}, {dbranch}, {pr_details}")
-                time.sleep(30)
+                    f.write(f"FAILED TO MAKE PR: {org}, {rname}, {branch_name}, {dbranch}, {pr_details}\n")
             else:
                 LOG.info(f" committed to existing branch")
-                f.write(f"CREATED COMMIT: {rname}")
+                f.write(f"CREATED COMMIT: {rname}\n")
                 count_commits += 1
-                time.sleep(10)
 
-            # Without, you hit secondary rate limits if you have more than ~30
-            # repos. I tried 3, too short. 5, got through 80. 30, totally worked.
-            # there's a good number in between that i'm sure but they don't help
-            # much. From GH docs: Requests that create content which triggers
-            # notifications, such as issues, comments and pull requests, may be
-            # further limited and will not include a Retry-After header in the
-            # response. Please create this content at a reasonable pace to avoid
-            # further limiting.
-
-            #time.sleep(30)
+            time.sleep(5)
 
     LOG.info(
         f"Processed {count} repos; {count_prs} PRs successfully made and {count_commits} commits created on existing branches"
