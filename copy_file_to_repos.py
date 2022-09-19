@@ -10,7 +10,6 @@ Description:
     Copies a given file to all repos in an `org`
 """
 
-import argparse
 import datetime
 import logging
 import sys
@@ -121,7 +120,7 @@ def main(
             time.sleep(5)
 
     LOG.info(
-        f"Processed {count} repos; {count_commits} successes, {count_skipped} skipped, {count_failed} failures"
+        f"Processed {count} repos; {count_commits} successes, {count_skipped} skipped, {count_failed} failures\n\nFull output logged in {filename}"
     )
 
 
