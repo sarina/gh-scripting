@@ -6,6 +6,7 @@ This is in order to return to open PRs and update them.
 
 Find the json file at a url like this:
 https://api.github.com/search/issues?q=is:pr+org:openedx+author:sarina+is:open
+(only gives 1 page of results, further research to use the search API)
 """
 import datetime
 import json
@@ -25,10 +26,10 @@ def parse_prs(filename):
     with open(f2, "w") as f:
         for pr_blob in data["items"]:
             # in form: "https://api.github.com/repos/openedx/blockstore/issues/203"
-            pr = pr_blob["url"]
+            pr_url = pr_blob["url"]
             # Only if you need clickable URLs
-            # pr = pr.replace("api.git", "git")
-            pr_number = pr.split("/")[-1]
+            pr_url = pr_url.replace("api.git", "git")
+            pr_number = pr_url.split("/")[-1]
             repo_name = pr_blob["repository_url"].split("/")[-1]
 
             response = requests.get(
@@ -38,7 +39,7 @@ def parse_prs(filename):
             branch_name = response.json()["head"]["ref"]
 
             # In order to update existing PR, need to be able to checkout the branch
-            f.write(f"[{repo_name}, {branch_name}]\n")
+            f.write(f"[{pr_url}, {repo_name}, {branch_name}]\n")
             count += 1
 
     print(f"Output of {count} PRs written to {f2}")
@@ -46,5 +47,5 @@ def parse_prs(filename):
 
 if __name__ == "__main__":
     # https://api.github.com/search/issues?q=is:pr+org:openedx+author:sarina+is:open
-    parse_prs("inputs/my_prs_0921.txt")
+    parse_prs("inputs/my_prs_0922.txt")
 

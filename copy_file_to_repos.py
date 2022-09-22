@@ -75,20 +75,24 @@ def main(
             repo_path = get_repo_path(rname, root_dir)
             # clone repo; if exists, checkout the default branch & pull latest
             clone_repo(root_dir, repo_path, ssh_url, dbranch)
- 
-            if not commit_on_existing and not new_branch(repo_path, branch_name):
-                # this branch already exists
-                LOG.info(f"Skipping {rname}, branch already exists")
-                f.write(f"BRANCH EXISTS: {rname}")
-                count_skipped += 1
-                continue
+            branch_found = False
+            if not new_branch(repo_path, branch_name):
+                if commit_on_existing:
+                    branch_found = True
+                    checkout(repo_path, branch_name)
+                else:
+                    # this branch already exists
+                    LOG.info(f"Skipping {rname}, branch already exists")
+                    f.write(f"BRANCH EXISTS: {rname}")
+                    count_skipped += 1
+                    continue
 
-            add_files(
-                root_dir,
+            full_dest_path = add_files(
                 repo_path,
                 src_file_path,
                 dest_file_path
             )
+            swap_string_in_file("\$default-branch", dbranch, full_dest_path, repo_path)
             if interactive:
                 try:
                     interactive_commit(repo_path)
@@ -97,7 +101,7 @@ def main(
                     continue
 
             make_commit(repo_path, commit_msg)
-            if commit_on_existing:
+            if commit_on_existing and  branch_found:
                 # If we're committing on an existing branch, assume we are
                 # updating the branches and don't need a new PR
                 time.sleep(5)
@@ -124,7 +128,7 @@ def main(
     )
 
 
-def add_files(root_dir, repo_path, src_file_path, dest_file_path):
+def add_files(repo_path, src_file_path, dest_file_path):
     """
     For the given repo (represented by the repo_path) which resides in the
     root_dir, copies a file represented by src_file_path (fully qualified)
@@ -139,23 +143,37 @@ def add_files(root_dir, repo_path, src_file_path, dest_file_path):
     for dir in dirs[:-1]:
         mkdir(repo_path, dir)
 
-    if not root_dir.endswith('/'):
-        root_dir = root_dir + '/'
     full_dest_path = repo_path + dest_file_path
 
     cp(repo_path, src_file_path, full_dest_path)
+    return full_dest_path
 
+
+def swap_string_in_file(old_string, new_string, file_path, repo_path):
+    proc = subprocess.Popen(
+        f"/usr/bin/sed -i '' -e 's/{old_string}/{new_string}/g' {file_path}",
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True        
+    )
+    _ = proc.communicate()
 
 if __name__ == "__main__":
 
     org = "openedx"
     root_dir = "/Users/sarinacanelake/openedx/"
-    branch_name = ''
-    src_file_path = ''
-    dest_file_path = ''
-    commit_msg = ''
-    pr_body = ''
+    branch_name = 'tcril/upgrade-python-requirements'
+    src_file_path = '/Users/sarinacanelake/openedx/.github/workflow-templates/upgrade-python-requirements.yml'
+    dest_file_path = '.github/workflows'
+    commit_msg = 'build: Use standard upgrade-python-requirements file'
+    pr_body = "The upgrade-python-requirements file in this repo is outdated; it should use the standard template defined in the .github repo, under workflow-templates directory.\n\nNote I have tried to replace the `'$default-branch'` variable with the (unquoted) name of this repo's master branch; if that did not happen correctly, do not merge this branch until it is fixed."
 
+    file = open("inputs/testeng-ci.txt")
+    repos = []
+    for line in file.readlines():
+        repos.append(line.split("/")[0])
+    LOG.info(f"repos: {repos}")
     main(
         org,
         root_dir,
@@ -165,7 +183,7 @@ if __name__ == "__main__":
         commit_msg,
         pr_body,
         exclude_private=False,
-        interactive=False,
-        select_repos=None,
-        commit_on_existing=False
+        interactive=True,
+        select_repos=repos,
+        commit_on_existing=True
     )

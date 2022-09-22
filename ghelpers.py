@@ -126,6 +126,8 @@ def new_branch(repo_path, branch_name):
     git("push", ["-u", "origin", branch_name], repo_path)
     return True
 
+def checkout(repo_path, branch_name):
+    git("checkout", [branch_name], repo_path)
 
 def checkout_branch(repo_path, branch_name):
     """
@@ -158,7 +160,6 @@ def make_commit(repo_path, commit_msg, force=False):
         git("push", ["-f"], repo_path)
     else:
         git("push", [], repo_path)
-
 
 def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     """
@@ -200,6 +201,8 @@ def cp(working_dir, filepath, dest_path):
 def get_repo_path(repo, root_dir):
     if not root_dir.endswith('/'):
         root_dir = root_dir + '/'
+    if not repo.endswith('/'):
+        repo = repo + '/'
     return root_dir + repo
 
 
