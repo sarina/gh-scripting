@@ -34,7 +34,7 @@ def main(org, exclude_private=False):
     """
     gh_headers = get_github_headers()
     count = 1
-    ldata = {"no license": []}
+    ldata = {"no license": ["No license data found in the API call"]}
 
     for rname, license_data in get_repos_plus_keys(gh_headers, org, exclude_private, ["license"]):
         if not count%5:
@@ -60,7 +60,7 @@ def main(org, exclude_private=False):
     with open(fname, "w") as f:
         for license in ldata:
             num = len(ldata[license]) - 1
-            f.write(f"Found {num} repos with license type {license}")
+            f.write(f"Found {num} repos with license type '{license}'\n")
         f.write("\n\n\n")
         f.write(json.dumps(ldata, indent=4))
 
