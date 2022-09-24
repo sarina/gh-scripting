@@ -49,11 +49,12 @@ def get_github_headers() -> dict:
 def get_repos(gh_headers, org, exclude_private):
     """
     Generator that iterates over all repos in `org`
-    Yields a 4-tuple of repo data:
+    Yields a 5-tuple of repo data:
     - repo name (str)
     - ssh url (str)
     - default branch name (str)
     - has issues (boolean)
+    - count (running count of number of repos given)
 
     * exclude_private (bool): if True, excludes private repos
     """
@@ -75,6 +76,33 @@ def get_repos(gh_headers, org, exclude_private):
            )
        params["page"] = params["page"] + 1
        response = requests.get(org_url, headers=gh_headers, params=params).json()
+
+
+def get_repos_plus_keys(gh_headers, org, exclude_private, keys=None):
+    """
+    Generator
+    Yields each repo's name in the org, plus optional additional data
+
+    keys: list. Will also yield the data for the key(s) provided, in an ordered
+      list of [repo_name, key1_result, key2_result, ...].
+      Keys are strings that represent a data element you can grab from a github
+      `repo` data struct (see the data response samples at
+      https://docs.github.com/en/rest/repos/repos)
+    """
+    org_url = "https://api.github.com/orgs/{0}/repos".format(org)
+    params = {"page": 1}
+    if exclude_private:
+        params["type"] = "public"
+    response = requests.get(org_url, headers=gh_headers, params=params).json()
+    while len(response) > 0:
+        for repo_data in response:
+            result = [repo_data['name']]
+            if keys:
+                for key in keys:
+                    result.append(repo_data[key])
+            yield result
+        params["page"] = params["page"] + 1
+        response = requests.get(org_url, headers=gh_headers, params=params).json()
 
 
 def git(command, args, cwd):

@@ -7,8 +7,8 @@ Requires:
     GITHUB_AUTH token in local environment
 
 Description:
-    Applies purple label DEPR with short description to all public repos in
-    the given org.
+    Applies a specified label, with color and description, to every
+    repo in a given github org
 
 Future Work:
     Remove asserts and do inscript retry &/or dump the failed repos
@@ -20,7 +20,10 @@ import sys
 import argparse
 import requests
 
-from ghelpers import get_github_headers
+from ghelpers import (
+    get_github_headers,
+    get_repos_plus_keys
+)
 
 # Switch to DEBUG for additional debugging info
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -33,28 +36,11 @@ def main(org, name, color, description, exclude_private=False):
     gh_headers = get_github_headers()
 
     count = 1
-    for repo in get_repos(gh_headers, org, exclude_private):
+    for repo in get_repos_plus_keys(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {repo} ({count}) ************\n")
         create_or_update_label(gh_headers, org, repo, name, color, description)
         count = count + 1
     LOG.info("Successfully standardised label {name} across {count} repos")
-
-def get_repos(gh_headers, org, exclude_private):
-    """
-    Generator
-    Yields each repo'- name in the org
-    """
-    org_url = "https://api.github.com/orgs/{0}/repos".format(org)
-    params = {"page": 1}
-    if exclude_private:
-        params["type"] = "public"
-    response = requests.get(org_url, headers=gh_headers, params=params).json()
-    while len(response) > 0:
-        for repo_data in response:
-            assert not repo_data['private']
-            yield repo_data['name']
-        params["page"] = params["page"] + 1
-        response = requests.get(org_url, headers=gh_headers, params=params).json()
 
 
 def create_or_update_label(gh_headers, org, repo, name, color, description):
