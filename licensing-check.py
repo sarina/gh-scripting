@@ -34,11 +34,17 @@ def main(org, exclude_private=False):
     """
     gh_headers = get_github_headers()
     count = 1
-    ldata = {}
+    ldata = {"no license": []}
 
     for rname, license_data in get_repos_plus_keys(gh_headers, org, exclude_private, ["license"]):
         if not count%5:
             LOG.info(f"******* CHECKING REPO: {rname} ({count}) ************")
+
+        if license_data is None:
+            ldata["no license"].append(rname)
+            count += 1
+            continue
+
         l_id = license_data["spdx_id"]
         if l_id  not in ldata:
             # Add the human-readable name as the first item
