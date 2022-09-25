@@ -22,28 +22,30 @@ def parse_prs(search_query, branch_name=False):
     count = 1
     get_pr_url = "https://api.github.com/repos/openedx/{0}/pulls/{1}"
 
+    overall_output = []
+
+    for pr_blob in data:
+        print(f"processing pr #{count}")
+        pr_url = pr_blob["url"]
+        # Only if you need clickable URLs
+        pr_url = pr_url.replace("api.git", "git")
+        pr_number = pr_url.split("/")[-1]
+        repo_name = pr_blob["repository_url"].split("/")[-1]
+
+        result = [pr_url, repo_name]
+        if branch_name:
+            response = requests.get(
+                get_pr_url.format(repo_name, pr_number),
+                headers=gh_headers
+            )
+            branch_name = response.json()["head"]["ref"]
+            result.append(branch_name)
+
+        overall_output.append(result)
+        count += 1
+
     with open(f2, "w") as f:
-        for pr_blob in data:
-            print(f"processing pr #{count}")
-            pr_url = pr_blob["url"]
-            # Only if you need clickable URLs
-            pr_url = pr_url.replace("api.git", "git")
-            pr_number = pr_url.split("/")[-1]
-            repo_name = pr_blob["repository_url"].split("/")[-1]
-
-            result = [pr_url, repo_name]
-            if branch_name:
-                response = requests.get(
-                    get_pr_url.format(repo_name, pr_number),
-                    headers=gh_headers
-                )
-                branch_name = response.json()["head"]["ref"]
-                result.append(branch_name)
-
-            # In order to update existing PR, need to be able to checkout the branch
-            f.write(f"{result}\n")
-            count += 1
-
+        f.write(json.dumps(overall_output, indent=4))
     print(f"Output of {count-1} PRs written to {f2}")
     
 
