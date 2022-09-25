@@ -211,6 +211,31 @@ def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     LOG.info("PR success: {}".format(pr_url))
     return pr_url
 
+
+def gh_search_query(gh_headers, query_string):
+    """
+    Hits the github search api with the given query, and returns the full
+    json result.
+
+    query_string: like what you'd put into the gh UI. Example:
+      'is:pr author:sarina is:open'
+    """
+    query_string = query_string.replace(' ', '+')
+    post_url = f"https://api.github.com/search/issues?q={query_string}"
+    print(f"{post_url}")
+    params = {"page": 1}
+    r = requests.get(post_url, headers=gh_headers, params=params).json()
+    items = r["items"]
+    response = items
+    while len(items) > 0:
+        params["page"] += 1
+        print(f"page num: {params['page']}")
+        r = requests.get(post_url, headers=gh_headers, params=params).json()
+        items = r["items"]
+        response.extend(items)
+    return response
+
+
 def mkdir(working_dir, dir_name):
     p1 = subprocess.Popen(
         ["/bin/mkdir", dir_name],
