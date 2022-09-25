@@ -9,7 +9,7 @@ import logging
 import sys
 import time
 
-from ghelpers import get_github_headers
+from github_helpers import get_github_headers
 from add_depr_wkflw_issues import (
     make_pr, git, get_repo_path, PrCreationError
 )

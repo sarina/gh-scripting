@@ -23,7 +23,7 @@ import os
 import requests
 import sys
 
-from ghelpers import (
+from github_helpers import (
     get_github_headers,
     gh_search_query
 )

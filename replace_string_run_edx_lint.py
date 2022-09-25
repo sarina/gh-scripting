@@ -37,7 +37,7 @@ import subprocess
 import sys
 import time
 
-from ghelpers import (
+from github_helpers import (
     checkout_branch,
     clone_repo,
     get_github_headers,

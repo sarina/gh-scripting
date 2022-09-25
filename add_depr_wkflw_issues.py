@@ -18,7 +18,7 @@ import logging
 import sys
 import time
 
-from ghelpers import *
+from github_helpers import *
 
 
 # Switch to DEBUG for additional debugging info

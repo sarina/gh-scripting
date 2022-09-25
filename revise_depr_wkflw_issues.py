@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 
-from ghelpers import get_github_headers
+from github_helpers import get_github_headers
 
 
 # Switch to DEBUG for additional debugging info

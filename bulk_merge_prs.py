@@ -24,7 +24,7 @@ import requests
 import sys
 import time
 
-from ghelpers import get_github_headers
+from github_helpers import get_github_headers
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)

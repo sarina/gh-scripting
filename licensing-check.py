@@ -23,7 +23,7 @@ import logging
 import os
 import sys
 
-from ghelpers import (
+from github_helpers import (
     get_github_headers,
     get_repos_plus_keys
 )

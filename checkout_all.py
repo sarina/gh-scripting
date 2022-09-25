@@ -8,7 +8,7 @@ import logging
 import sys
 
 
-from ghelpers import (
+from github_helpers import (
   clone_repo,
   get_github_headers,
   get_repos,
