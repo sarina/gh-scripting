@@ -31,6 +31,7 @@ import sys
 import time
 
 from ghelpers import *
+from shell_helpers import *
 
 
 # Switch to DEBUG for additional debugging info

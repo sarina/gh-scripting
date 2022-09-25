@@ -6,9 +6,6 @@
 """
 import json
 import logging
-import os
-import requests
-import subprocess
 import sys
 import time
 
@@ -16,9 +13,11 @@ from ghelpers import get_github_headers
 from add_depr_wkflw_issues import (
     make_pr, git, get_repo_path, PrCreationError
 )
+
 # Switch to DEBUG for additional debugging info
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
+
 
 def main(path_to_failed_json, repo_root):
     """

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Used to close prs you've got in a list in a json file somewhere
+
+Just literally, a list of prs in the form `http://github.com/<org>/<repo>/pull/<num>
 """
 
 # Better may have been: just iterate thru all your repos, search for any open

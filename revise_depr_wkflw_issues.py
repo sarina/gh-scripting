@@ -28,6 +28,7 @@ from ghelpers import get_github_headers
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
+
 def main(org, root_dir, exclude_private=False, interactive=False):
     """
     Goes through all repos in an org, clones them, makes a new branch, copies

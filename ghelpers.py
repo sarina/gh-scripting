@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-github helpers
+Wrappers for calls to the github api, as well as shell commands that
+ begin with `git`.
 """
 
+import github as gh_api
 import logging
 import os
+import requests
 import subprocess
 import sys
 
-import github as gh_api
-import requests
+from  shell_helpers import git
+
 
 # Switch to DEBUG for additional debugging info
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -105,24 +108,6 @@ def get_repos_plus_keys(gh_headers, org, exclude_private, keys=None):
         response = requests.get(org_url, headers=gh_headers, params=params).json()
 
 
-def git(command, args, cwd):
-    """
-    Executes a Git command.
-    * command: string
-    * args: list of command line arguments
-    * cwd: string, which working dir to execute the command in
-    """
-    array = ["/opt/homebrew/bin/git", command]
-    array.extend(args)
-    p1 = subprocess.Popen(
-        array,
-        cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    out = p1.communicate()
-    return out
-
 def clone_repo(root_dir, repo_path, ssh_url, default_branch):
     """
     If not already cloned into root_dir, clones repo at that location. If
@@ -154,8 +139,14 @@ def new_branch(repo_path, branch_name):
     git("push", ["-u", "origin", branch_name], repo_path)
     return True
 
+
 def checkout(repo_path, branch_name):
+    """
+    Checks out the git branch `branch_name` within the repo denoted
+    by the fully-qualified `repo_path`
+    """
     git("checkout", [branch_name], repo_path)
+
 
 def checkout_branch(repo_path, branch_name):
     """
@@ -188,6 +179,19 @@ def make_commit(repo_path, commit_msg, force=False):
         git("push", ["-f"], repo_path)
     else:
         git("push", [], repo_path)
+
+
+class PrCreationError(Exception):
+    def __init__(self, status_code, rjson):
+        self.status_code = status_code
+        self.rjson = rjson
+
+    def __str__(self):
+        error_string = "Problem creating pull request."
+        error_string += "\nGot status code: {}".format(self.status_code)
+        error_string += "\nJSON: {}".format(self.rjson)
+        return error_string
+
 
 def make_pr(gh_headers, org, rname, branch_name, dbranch, pr_details):
     """
@@ -236,66 +240,7 @@ def gh_search_query(gh_headers, query_string):
     return response
 
 
-def mkdir(working_dir, dir_name):
-    p1 = subprocess.Popen(
-        ["/bin/mkdir", dir_name],
-        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    _ = p1.communicate()
-
-def cp(working_dir, filepath, dest_path):
-    p1 = subprocess.Popen(
-        ["cp", filepath, dest_path],
-        cwd=working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    _ = p1.communicate()
-
-
-def get_repo_path(repo, root_dir):
-    if not root_dir.endswith('/'):
-        root_dir = root_dir + '/'
-    if not repo.endswith('/'):
-        repo = repo + '/'
-    return root_dir + repo
-
-
-class RepoError(Exception):
-    pass
-
-
-class PrCreationError(Exception):
-    def __init__(self, status_code, rjson):
-        self.status_code = status_code
-        self.rjson = rjson
-
-    def __str__(self):
-        error_string = "Problem creating pull request."
-        error_string += "\nGot status code: {}".format(self.status_code)
-        error_string += "\nJSON: {}".format(self.rjson)
-        return error_string
-
-def interactive_commit(repo_path):
-    """
-    Runs `git diff` then waits for user input about whether or not to push changes
-    """
-    # don't call the `git` method because we always want this to go to stdout
-    p1 = subprocess.Popen(
-        ["/opt/homebrew/bin/git", "diff"],
-        cwd=repo_path
-    )
-    _ = p1.communicate()
-
-    cmd = input("Push changes? Y/N: ")
-    while cmd.lower() not in ["y", "n"]:
-        cmd = input("Push changes? Y/N: ")
-    if cmd.lower() == 'n':
-        cmd2 = input("Press Q to quit program, other inputs will continue to next repo: ")
-        if cmd2.lower() == "q":
-            raise KeyboardInterrupt
-        raise RepoError
-
-
-def git_reset(num_commits, repo_path):
+def git_reset_hard(num_commits, repo_path):
     """
     Does "git reset --hard HEAD~{num_commits}
     """
@@ -310,3 +255,15 @@ def git_reset(num_commits, repo_path):
     )
     out = proc.communicate()
     return out
+
+
+def get_repo_path(repo, root_dir):
+    """
+    Retuns the fully qualified path for the `repo` (repo name)
+    that is checked out on the `root_dir` path
+    """
+    if not root_dir.endswith('/'):
+        root_dir = root_dir + '/'
+    if not repo.endswith('/'):
+        repo = repo + '/'
+    return root_dir + repo

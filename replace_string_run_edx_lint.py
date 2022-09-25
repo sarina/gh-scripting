@@ -37,7 +37,18 @@ import subprocess
 import sys
 import time
 
-from ghelpers import *
+from ghelpers import (
+    checkout_branch,
+    clone_repo,
+    get_github_headers,
+    get_repo_path,
+    git_reset_hard,
+    make_commit
+)
+from shell_helpers import (
+    interactive_commit,
+    RepoError
+)
 
 
 # Switch to DEBUG for additional debugging info
@@ -118,7 +129,7 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
                 continue
 
             # Reset the branch to remove last autogen commit
-            git_reset(1, repo_path)
+            git_reset_hard(1, repo_path)
 
             # Go through each special file and run edx_lint on them
             for fname in edx_lint_files:

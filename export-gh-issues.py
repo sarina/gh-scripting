@@ -4,18 +4,16 @@ Usage:
     python -m export-gh-issues.py -h
 """
 
-# pylint: disable=unspecified-encoding
-import json
-import logging
-import os
-import sys
 import argparse
 from datetime import datetime
-
-import github as gh_api
-import requests
-
+import json
+import logging
 from pandas import json_normalize
+
+import requests
+import sys
+
+from ghelpers import get_github_headers
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
@@ -127,20 +125,6 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=Non
             print(json.dumps(saved_issues, indent=4), file=export_file)
 
     LOG.info("Successfully wrote issues to: {0}".format(export_filename))
-
-
-def get_github_headers() -> dict:
-    """
-    Load GH personal access token from file.
-    """
-    gh_token = os.environ["GITHUB_TOKEN"]
-    LOG.info(" Authenticating.")
-    gh_client = gh_api.Github(gh_token)
-    LOG.info(" Authenticated.")
-
-    # set up HTTP headers because PyGithub isn't able to determine team permissions on a repo in bulk.
-    gh_headers = {"AUTHORIZATION": f"token {gh_token}"}
-    return gh_headers
 
 
 if __name__ == "__main__":

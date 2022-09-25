@@ -4,8 +4,19 @@ Clones all public & private repos in your org.
 If already cloned, switches to the default branch and pulls
   latest changes.
 """
+import logging
+import sys
 
-from ghelpers import *
+
+from ghelpers import (
+  clone_repo,
+  get_github_headers,
+  get_repos,
+  get_repo_path
+)
+
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+LOG = logging.getLogger(__name__)
 
 def clone_all(org, root_dir):
     gh_headers = get_github_headers()
