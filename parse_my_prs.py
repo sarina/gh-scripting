@@ -1,8 +1,20 @@
 """
-Takes a json output of a query over PRs and writes a file
-that contains [repo_name, pr_branch_name]
+usage: parse_my_prs.py [-h] [-Q QUERY] [-B]
 
-This is in order to return to open PRs and update them.
+Takes a json output of a query over PRs and writes a json file that contains
+[repo_name, pr_branch_name] for each PR result in the query. Probably will do
+funky stuff if you don't include 'is:pr' in your query.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+  -q QUERY, --query QUERY
+                        GitHub query, as you'd do over in the UI. Example:
+                          'is:pr author:YourUsername'. Defaults to Sarina's open
+                          PRs over the openedx github org.
+
+  -B, --branch-name     Adds the name of the branch the PR is being made from
+                          (head ref) to the output list for the PR
 """
 import argparse
 import datetime
@@ -65,7 +77,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-Q", "--query",
+        "-q", "--query",
         help="GitHub query, as you'd do over in the UI. Example: 'is:pr author:YourUsername'. Defaults to Sarina's open PRs over the openedx github org.",
         default="author:sarina is:pr is:open org:openedx"
     )
