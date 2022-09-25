@@ -4,15 +4,20 @@ that contains [repo_name, pr_branch_name]
 
 This is in order to return to open PRs and update them.
 """
+import argparse
 import datetime
 import json
+import os
 import requests
+import sys
+
 from ghelpers import (
     get_github_headers,
     gh_search_query
 )
 
 def parse_prs(search_query, branch_name=False):
+    print(f"Sending search query: '{search_query}'")
     gh_headers = get_github_headers()
     data = gh_search_query(gh_headers, search_query)
     print(f"Processing {len(data)} PRs from search query")
@@ -50,6 +55,27 @@ def parse_prs(search_query, branch_name=False):
     
 
 if __name__ == "__main__":
-    
-    parse_prs("author:sarina is:pr is:open org:openedx")
+    try:
+        os.environ["GITHUB_TOKEN"]
+    except KeyError:
+        sys.exit("*** ERROR ***\nGITHUB_TOKEN must be defined in this environment")
+
+    parser = argparse.ArgumentParser(
+        description="Takes a json output of a query over PRs and writes a json file that contains [repo_name, pr_branch_name] for each PR result in the query. Probably will do funky stuff if you don't include 'is:pr' in your query."
+    )
+
+    parser.add_argument(
+        "-Q", "--query",
+        help="GitHub query, as you'd do over in the UI. Example: 'is:pr author:YourUsername'. Defaults to Sarina's open PRs over the openedx github org.",
+        default="author:sarina is:pr is:open org:openedx"
+    )
+
+    parser.add_argument(
+        "-B", "--branch-name",
+        help="Adds the name of the branch the PR is being made from (head ref) to the output list for the PR",
+        action="store_true"
+    )
+
+    args = parser.parse_args()
+    parse_prs(args.query, args.branch_name)
 
