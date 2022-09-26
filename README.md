@@ -2,7 +2,10 @@
 
 just a dumb little collection of scripts i've found useful.
 
-scripts require a GITHUB_AUTH token to be defined in the local environment
+scripts require a [github authorization
+token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+to be defined in the local environment. generate a token as described, then set
+it in your environment as `$GITHUB_TOKEN`
 
 ## helper functions
 
@@ -37,8 +40,9 @@ Usage: licensing-check.py [-h] [-P] org
 ❯ python -m  apply-labels.py -h
 usage: apply-labels.py [-h] [-P] org name color description
 
-Applies a specified label, with short description and color, to all repos in the specified organization - either adding the label if it's not already
-there, or updating it to match the specification if it is.
+Applies a specified label, with short description and color, to all repos in the
+specified organization - either adding the label if it's not already there, or
+updating it to match the specification if it is.
 
 positional arguments:
   org                   Name of the organization
