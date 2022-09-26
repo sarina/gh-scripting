@@ -28,21 +28,34 @@ from github_helpers import (
     gh_search_query
 )
 
-def parse_prs(search_query, branch_name=False):
+def parse_prs(search_query=False, branch_name=False, foutput=False):
+    """
+    Returns a list of lists, each interior list as [pr_url, repo_name] for each
+    pr given from the search_query, which must contain `is:pr` as part of the
+    query. Default search query is 'author:sarina is:pr is:open org:openedx'
+
+    If `branch_name` is set, the branch_name that the PR was made from is also
+    added to the PR list.
+
+    If `foutput` is set (implicitly set if called from the command line),
+    insteads writes the output to a json file in the `output/` directory.
+    """
+    if not search_query:
+        search_query = 'author:sarina is:pr is:open org:openedx'
+
     print(f"Sending search query: '{search_query}'")
     gh_headers = get_github_headers()
     data = gh_search_query(gh_headers, search_query)
-    print(f"Processing {len(data)} PRs from search query")
+    print(f"\nProcessing {len(data)} PRs from search query\n")
 
-    ts = str(datetime.datetime.now())[:19]
-    f2 = f"output/pr_parse_{ts}"
     count = 1
     get_pr_url = "https://api.github.com/repos/openedx/{0}/pulls/{1}"
 
     overall_output = []
 
     for pr_blob in data:
-        print(f"processing pr #{count}")
+        if not count%10:
+            print(f"processing pr #{count}")
         pr_url = pr_blob["url"]
         # Only if you need clickable URLs
         pr_url = pr_url.replace("api.git", "git")
@@ -61,9 +74,15 @@ def parse_prs(search_query, branch_name=False):
         overall_output.append(result)
         count += 1
 
-    with open(f2, "w") as f:
-        f.write(json.dumps(overall_output, indent=4))
-    print(f"Output of {count-1} PRs written to {f2}")
+    if foutput:
+        ts = str(datetime.datetime.now())[:19]
+        f2 = f"output/pr_parse_{ts}"
+        with open(f2, "w") as f:
+            f.write(json.dumps(overall_output, indent=4))
+        print(f"Output of {count-1} PRs written to {f2}")
+        return
+
+    return overall_output
     
 
 if __name__ == "__main__":
@@ -89,5 +108,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    parse_prs(args.query, args.branch_name)
+    parse_prs(args.query, args.branch_name, foutput=True)
 

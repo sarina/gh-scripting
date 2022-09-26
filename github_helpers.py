@@ -233,7 +233,6 @@ def gh_search_query(gh_headers, query_string):
     response = items
     while len(items) > 0:
         params["page"] += 1
-        print(f"page num: {params['page']}")
         r = requests.get(post_url, headers=gh_headers, params=params).json()
         items = r["items"]
         response.extend(items)
