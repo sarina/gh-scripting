@@ -15,8 +15,8 @@ Description:
     commit.
 
 Note:
-    swap_strings has hardcoded shell commands that are wonky due to OSX. If
-    you're not on OSX you should examine and change them.
+    `swap_strings` (in shell_helpers.py) has hardcoded shell commands that are
+    wonky due to OSX. If you're not on OSX you should examine and change them.
 """
 
 ## Steps
@@ -127,56 +127,6 @@ def main(org, root_dir, old_string, new_string, exclude_private=False, interacti
         f"Processed {count} repos; {count_prs} PRs successfully made and {count_commits} commits created on existing branches"
     )
     LOG.info(f"Skipped {count_skipped} repos as string didn't exist")
-
-
-def found(old_string, repo_path):
-    """
-    Looks through the repo specified by `repo_path` to see if there are any
-    occurances of `old_string`
-
-    Returns bool: True if the string is found, else False
-    """
-    # grep -r old_string . returns an array of which files match the string.
-    proc = subprocess.Popen(
-        f"grep -r {old_string} .",
-        cwd=repo_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True
-    )
-    res, _ = proc.communicate()
-    return len(res) > 0
-
-
-def swap_strings(old_string, new_string, repo_path):
-    """
-    Replaces all occurances of `old_string` in the repo with `new_string`
-    recursively starting in the root directory given by `repo_path`
-
-    Does not inspect the `.git/` directory.
-    """
-    # Command one: Look for files with the old_string, skipping the .git directorys
-    c1 = f'/usr/bin/grep -rl --exclude-dir=.git "{old_string}"'
-
-    # Command two: Swap!
-    # delimiter for sed; rather than escape we'll use _ if we're replacing a URL
-    d = "/"
-    if "/" in old_string or "/" in new_string:
-        d = "_"
-    # NOTE!!! This is the OSX command, drop `LC_ALL=C` and `'' -e` if not OSX!
-    c2 = f"LC_ALL=C /usr/bin/xargs /usr/bin/sed -i '' -e 's{d}{old_string}{d}{new_string}{d}g'"
-
-    # Now chain those calls together in a subprocess wheee
-    chained = c1 + " | " + c2
-    proc = subprocess.Popen(
-        chained,
-        cwd=repo_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True
-    )
-
-    _ = proc.communicate()
 
 
 if __name__ == "__main__":
