@@ -2,9 +2,35 @@
 
 just a dumb little collection of scripts i've found useful.
 
-* ghelpers.py: github helper functions
+scripts require a GITHUB_AUTH token to be defined in the local environment
 
-* apply-labels.py: for a given github organization, applies a label uniformly
+## helper functions
+
+* `github_helpers.py`: Functions that help call the GitHub API or perform
+  manipulation of local filesystem files using the `git` command
+
+* `shell_helpers.py`: Functions that call local filesystem commands, such as
+  `mv`, `cp`, and the base implementation of the `git` command
+
+## general-use/could be kinda-useful for you?
+
+* `licensing-check.py`: generates a json report of an org's repo's licenses
+
+```
+Usage: licensing-check.py [-h] [-P] org
+
+  Creates a report of which repos have which licenses.
+
+  positional arguments:
+    org                   Name of the organization
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -P, --exclude-private
+                          Exclude private repos from this org
+```
+
+* `apply-labels.py`: for a given github organization, applies a label uniformly
   across all repos
 
 ```
@@ -26,8 +52,9 @@ optional arguments:
                         Exclude private repos from this org
 ```
 
-* export-gh-issues.py: Export GitHub issues to json or csv. One day
-  will script over beta projects (when the API is ready).
+
+* `export-gh-issues.py`: Export GitHub issues from one or more repos to json or
+  csv. Not working for repos with >30 issues.
 
 ```
 > python -m export-gh-issues.py -h
@@ -51,23 +78,82 @@ optional arguments:
                         Only return GitHub issues with this label.
 ```
 
-  * Useful GitHub fields
+* `parse-pr-query.py`: returns a list of prs generated from a GH query over PRs
 
-    * As mentioned above, by default the script filters the raw GitHub-returned json to a small number of what I deem are useful fields. These are: "url", "\
-number", "title", "body", "created_at", "updated_at", "user" (github username).
+```
+usage: parse-pr-query.py [-h] [-Q QUERY] [-B]
 
-    * Additionally, the following two fields are returned as nested json (if json output is chosen) or as a flattened list (if csv output is chosen): "label\
-s" and "assignees"
+Takes a query over PRs and writes a json file that contains [repo_name,
+pr_branch_name] for each PR result in the query. Probably will do funky
+stuff if you don't include 'is:pr' in your query.
 
-    * See "sample-output/" folder for some sample outputs.
+optional arguments:
+  -h, --help            show this help message and exit
 
-* add_depr_wkflw_issues.py: non-generalized script to, for every repo in your org,
-  copy a reference file onto a new branch and issue a pull request. Collects pull
-  request URLs into an output json.
+  -q QUERY, --query QUERY
+                        GitHub query, as you'd do over in the UI. Example:
+                          'is:pr author:YourUsername'. Defaults to Sarina's open
+                          PRs over the openedx github org.
 
-* bulk_merge_prs.py: given a json list of PR urls, attempts to merge them. outputs
+  -B, --branch-name     Adds the name of the branch the PR is being made from
+                          (head ref) to the output list for the PR
+```
+
+* `bulk_merge_prs.py`: given a json list of PR urls, attempts to merge them. outputs
   a json list of failures.
 
-* parse_output.py: parses log output from add_depr_wkflw_issues if needed.
+* `checkout_all.py`: goes through a github org and checks out all its repos to a
+  local directory. If the repo is already checked out, switches to the repo's
+  default branch and pulls all upstream changes.
 
-* retry_failed_depr_wkflow_issues.py: self-explanatory
+* `copy_file_to_repos.py`: Goes through all repos in an org, clones them, makes
+    a new branch, copies specific files, commits them, creates a pull request,
+    and merges the pull request. Requires viewing the file and changing a bunch
+    of variables at the end of the file.
+
+* `fetch_gh_request_limit.py`: shows how many requests you've got left.
+  important: doesn't show secondary rate limit (which is not discoverable)
+
+## more specific to problems i've been solving
+
+You might be able to take inspiration from some of these scripts but you'll
+definitely need to replace some hardcoded logic.
+
+* `replace_string_with_another.py`: for each repo in your org, looks for a given
+    string. If the string exists, switches to a new branch, replaces the string
+    with a new string, commits changes, and opens a PR. Everything currently
+    hard-coded, but would not be terribly difficult to make this one generic.
+
+  * `replace_string_existing_branch.py`: Assumes you've run
+    `replace_string_with_another`, thus repos already have your working branch
+    defined, and you don't want to open a new set of PRs. Checks out existing
+    branch (or re-creates if existing was already merged) and performs another
+    string swap with the new strings, and makes a new commit.
+
+    Many things hard-coded but as above, wouldn't be super hard to genericize.
+
+  * `replace_string_run_edx_lint.py`: Basically, executes a command on every
+    repo, on an existing branch. But this is a bit more specific - it first
+    rolls back the previous commit, runs the command, then re-runs the original
+    command. Description: For each repo in your org, first looks to see if one
+    of the edx_lint files is present; if so, rolls back your branch, runs
+    edx_lint, then re-runs the core logic to swap strings defined in
+    `replace_string_with_another`.
+
+    This could potentially be made more generic, but is so specific I can't
+    imagine it's necessary.
+
+* `add_depr_wkflw_issues.py`: non-generalized script to, for every repo in your org,
+  copy a reference file onto a new branch and issue a pull request. Collects pull
+  request URLs into an output json. Some associated files:
+
+  * `parse_output.py`: parses log output from `add_depr_wkflw_issues` if needed.
+
+  * `retry_failed_depr_wkflow_issues.py`: retries prs that failed to post correctly; takes
+     in a set of info required to re-post them. Could probably be made more generic; this is
+     good if you hit rate limits and have a list of ready-to-go branches that need PRs.
+
+  * `revise_depr_wkflw_issues.py`: honestly not sure, this was made to correct
+    some mistakes and is messy and undocumented. don't look at it.
+
+

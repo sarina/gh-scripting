@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 """
-    Takes the failed PR posts from add_depr_wkflw_issues and retries them.
+    Retries prs that failed to post correctly; takes
+     in a set of info required to re-post them. Could probably be made more
+     generic; this is good if you hit rate limits and have a list of ready-to-go
+     branches that need PRs.
     Currently assumes that cloning, branching, file copy, commit, and push all
     succeeded, so this script simply retries making the PRs.
+
+    Must provide a qualified path to the file that has the PR data
+      (ex: /Users/<uname>/gh-scripting/output/failed.json); this data of PRs
+      that failed to be executed correctly, each entry being a 5-tuple of:
+      (org, repo name, branch name, default branch name, dict that has one,
+      both, or none of the keys "title" and "body" of the PR)
 """
 import json
 import logging

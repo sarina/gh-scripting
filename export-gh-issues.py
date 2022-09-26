@@ -2,6 +2,13 @@
 """
 Usage:
     python -m export-gh-issues.py -h
+
+Pulls all issues from given github repo(s).
+
+TODO:
+
+I bet this doesn't work when a repo has >30 issues because pagination is not
+handled.
 """
 
 import argparse

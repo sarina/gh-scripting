@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
 Usage:
-    python -m add-depr-wkflw-issues.py
+    python -m revise-depr-wkflw-issues.py
 
 Requires:
     GITHUB_AUTH token in local environment
 
 Description:
-    Transfers reference workflow template to all repos in the org. Additionally,
-    if the org doesn't have issues enabled, transfers a reference issue template
-    and issue configuration (if issues are enabled, inheriting a more open
-    reference issue template set will suffice).
+    honestly not sure, this was made to correct some mistakes in
+    `add_depr_wkflw_issues` and is messy and undocumented. don't look at it.
 """
 
 import json

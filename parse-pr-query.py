@@ -1,9 +1,9 @@
 """
-usage: parse_my_prs.py [-h] [-Q QUERY] [-B]
+usage: parse-pr-query.py [-h] [-Q QUERY] [-B]
 
-Takes a json output of a query over PRs and writes a json file that contains
-[repo_name, pr_branch_name] for each PR result in the query. Probably will do
-funky stuff if you don't include 'is:pr' in your query.
+Takes a query over PRs and writes a json file that contains [repo_name,
+pr_branch_name] for each PR result in the query. Probably will do funky stuff if
+you don't include 'is:pr' in your query.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         sys.exit("*** ERROR ***\nGITHUB_TOKEN must be defined in this environment")
 
     parser = argparse.ArgumentParser(
-        description="Takes a json output of a query over PRs and writes a json file that contains [repo_name, pr_branch_name] for each PR result in the query. Probably will do funky stuff if you don't include 'is:pr' in your query."
+        description="Takes a query over PRs and writes a json file that contains [repo_name, pr_branch_name] for each PR result in the query. Probably will do funky stuff if you don't include 'is:pr' in your query."
     )
 
     parser.add_argument(
