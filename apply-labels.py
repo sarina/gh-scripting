@@ -37,7 +37,7 @@ def main(org, name, color, description, exclude_private=False):
 
     count = 0
     for repo in get_repos_plus_keys(gh_headers, org, exclude_private):
-        LOG.info("\n\n******* CHECKING REPO: {repo} ({count}) ************\n")
+        LOG.info(f"\n\n******* CHECKING REPO: {repo} ({count}) ************\n")
         # for some reason, need to fix, get_repos_plus_keys returns each repo
         # in its own list so extract that.
         create_or_update_label(gh_headers, org, repo[0], name, color, description)

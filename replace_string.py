@@ -31,6 +31,7 @@ import sys
 import time
 
 from github_helpers import *
+from parse_pr_query import parse_prs
 from shell_helpers import *
 
 ### TODO ###
@@ -50,7 +51,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
 def main(
-        org_or_pr_data,  # is either a string `org_name` or a list of pr_data lists
+        org_or_query,  # is either a string `org_name` or a PR query (see parse-pr-query.py)
         string_pairs,  # a list of pairs (old_string, new_string, commit_msg)
         branch_name,  # if opening a new branch, else None
         pr_details,  # when opening the pr. dict of {"title": "title text", "body": "body_text"} or None if not creating a PR
@@ -84,15 +85,14 @@ def main(
     }
     overall_output = {}
 
-    if type(org_or_pr_data) == str:
-        org = org_or_pr_data
-        loop_iterator = get_repos(gh_headers, org, exclude_private)
+    if "is:pr" in org_or_query:
+        LOG.info(f" Found pr query: {org_or_query}")
+        # repo name, ssh_url, default branch, _, count
+        loop_iterator = parse_prs(org_or_query) # TODO fix this return value
+        
     else:
-        assert(
-            type(org_or_pr_data) == list and type(org_or_pr_data[0]) == list,
-            f" The repo data must be a list of lists, got {org_or_pr_data}"
-        )
-        loop_iterator = org_or_pr_data
+        LOG.info(f" Found org: {org_or_query}")
+        loop_iterator = get_repos(gh_headers, org_or_query, exclude_private)
 
     try:
         for repo_data in loop_iterator:
@@ -174,8 +174,8 @@ def main(
 
 
 if __name__ == "__main__":
-    # is either a string `org_name` or a list of pr_data lists
-    org_or_pr_data = "openedx"
+    # is either a string `org_name` or a PR query (see parse-pr-query.py)
+    org_or_query =  "author:sarina is:pr is:open org:openedx" #"openedx"
 
     # a list of pairs (old_string, new_string, commit_msg)
     string_pairs = [
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
 
     main(
-        org_or_pr_data, string_pairs,
+        org_or_query, string_pairs,
         branch_name, pr_details, root_dir,
         exclude_private=False, interactive=False
     )
