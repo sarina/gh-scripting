@@ -26,7 +26,7 @@ from github_helpers import (
 )
 
 # Switch to DEBUG for additional debugging info
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 LOG = logging.getLogger(__name__)
 
 def main(org, name, color, description, exclude_private=False):
@@ -35,12 +35,15 @@ def main(org, name, color, description, exclude_private=False):
     """
     gh_headers = get_github_headers()
 
-    count = 1
+    count = 0
     for repo in get_repos_plus_keys(gh_headers, org, exclude_private):
         LOG.info("\n\n******* CHECKING REPO: {repo} ({count}) ************\n")
-        create_or_update_label(gh_headers, org, repo, name, color, description)
+        # for some reason, need to fix, get_repos_plus_keys returns each repo
+        # in its own list so extract that.
+        create_or_update_label(gh_headers, org, repo[0], name, color, description)
         count = count + 1
-    LOG.info("Successfully standardised label {name} across {count} repos")
+
+    LOG.info(f"Successfully standardised label '{name}' across {count} repos")
 
 
 def create_or_update_label(gh_headers, org, repo, name, color, description):
@@ -49,21 +52,21 @@ def create_or_update_label(gh_headers, org, repo, name, color, description):
     description.
     If it's not present, creates it with specified color & description.
     """
-    # URL for the Labels api (can read all labels and add a new one)
-    labels_url = "https://api.github.com/repos/{0}/{1}/labels".format(org, repo)
-    # URL for one specific label - can check if one is present, or update it
-    single_label_url = "https://api.github.com/repos/{0}/{1}/labels/{2}".format(org, repo, name)
+    # URL for creating a new label
+    create_label_url = "https://api.github.com/repos/{0}/{1}/labels".format(org, repo)
+    # URL for fetching a label (to check existence or to patch for update)
+    fetch_label_url = "https://api.github.com/repos/{0}/{1}/labels/{2}".format(org, repo, name)
 
     action = None
     # If label is present, 200; if not, 404
-    label_present_r = requests.get(single_label_url, headers=gh_headers)
+    label_present_r = requests.get(fetch_label_url, headers=gh_headers)
 
     if label_present_r.status_code == 200:
-        LOG.debug("Label {0} present on repo {1}, updating label".format(name, repo))
+        LOG.info("Label {0} present on repo {1}, updating label".format(name, repo))
         r = requests.patch(
-            single_label_url,
+            fetch_label_url,
             headers=gh_headers,
-            json={"color": color, "description": description}
+            json={"name": name, "color": color, "description": description}
         )
         assert r.status_code == 200, "Updating label failed with {}".format(r.status_code)
         validate(r.json(), color, description)
@@ -71,13 +74,14 @@ def create_or_update_label(gh_headers, org, repo, name, color, description):
 
     else:
         # Add the label
-        LOG.debug("Didn't find the label")
+        LOG.info("didn't find the label")
+        LOG.info(f"URL: {create_label_url}")
         r = requests.post(
-            labels_url,
+            create_label_url,
             headers=gh_headers,
             json={"name": name, "color": color, "description": description}
         )
-        assert r.status_code == 201, "Adding label failed with {}".format(r.status_code)
+        assert r.status_code == 201, "Adding label failed with {} {}".format(r.status_code, r.json())
         validate(r.json(), color, description, name)
         action = "added"
 
