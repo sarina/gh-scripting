@@ -28,7 +28,9 @@ def git(command, args, cwd):
     * args: list of command line arguments
     * cwd: string, which working dir to execute the command in
     """
-    array = ["/opt/homebrew/bin/git", command]
+    # TEMP TODO
+    # this is hardcoded for the "gh repo clone" command in checkout_all
+    array = ["/opt/homebrew/bin/gh", command, "clone"]
     array.extend(args)
     p1 = subprocess.Popen(
         array,
@@ -37,6 +39,7 @@ def git(command, args, cwd):
         stderr=subprocess.PIPE
     )
     out = p1.communicate()
+    print("{}".format(out))
     return out
 
 

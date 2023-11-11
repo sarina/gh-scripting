@@ -114,10 +114,12 @@ def clone_repo(root_dir, repo_path, ssh_url, default_branch):
     cloned, switches to the repo's default_branch and pulls down the latest
     changes.
     """
+    # TEMP TODO
+    # for gh cli just need `openedx/repo_name` not the qualified git path
+    ssh_url = ssh_url.split(":")[1][:-4]
     path_exists = os.path.exists(repo_path)
-
     if not path_exists:
-        git("clone", [ssh_url], root_dir)
+        git("repo", [ssh_url], root_dir)
 
     else:
         git("checkout", [default_branch], repo_path)
